@@ -86,7 +86,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                     physicalStoreRepository.addQuantity(productCode, batch.getMainInventoryId(), toRestock);
 
                     // Log transaction
-                    logTransaction(productCode, batch.getMainInventoryId(), InventoryTransactionType.RESTOCK,
+                    logTransaction(productCode, batch.getMainInventoryId(), InventoryTransactionType.RESTOCK_PHYSICAL,
                         StoreType.PHYSICAL, toRestock, "Restocked to physical store shelves");
 
                     totalRestocked += toRestock;
@@ -122,14 +122,14 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         // Reduce from main inventory
         boolean reduced = mainInventoryRepository.reduceQuantity(batchId, quantity);
         if (!reduced) {
-            throw new InsufficientStockException(productCode, 0, quantity);
+            throw InsufficientStockException.forProduct(productCode, 0, quantity);
         }
 
         // Add to physical store
         physicalStoreRepository.addQuantity(productCode, batchId, quantity);
 
         // Log transaction
-        logTransaction(productCode, batchId, InventoryTransactionType.RESTOCK,
+        logTransaction(productCode, batchId, InventoryTransactionType.RESTOCK_PHYSICAL,
             StoreType.PHYSICAL, quantity, "Restocked to physical store from batch " + batchId);
 
         logger.info("Restocked physical store from batch {}: {} quantity: {}", batchId, productCode, quantity);
@@ -199,7 +199,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
                     onlineStoreRepository.addQuantity(productCode, batch.getMainInventoryId(), toRestock);
 
                     // Log transaction
-                    logTransaction(productCode, batch.getMainInventoryId(), InventoryTransactionType.RESTOCK,
+                    logTransaction(productCode, batch.getMainInventoryId(), InventoryTransactionType.RESTOCK_ONLINE,
                         StoreType.ONLINE, toRestock, "Restocked to online store");
 
                     totalRestocked += toRestock;
@@ -235,14 +235,14 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         // Reduce from main inventory
         boolean reduced = mainInventoryRepository.reduceQuantity(batchId, quantity);
         if (!reduced) {
-            throw new InsufficientStockException(productCode, 0, quantity);
+            throw InsufficientStockException.forProduct(productCode, 0, quantity);
         }
 
         // Add to online store
         onlineStoreRepository.addQuantity(productCode, batchId, quantity);
 
         // Log transaction
-        logTransaction(productCode, batchId, InventoryTransactionType.RESTOCK,
+        logTransaction(productCode, batchId, InventoryTransactionType.RESTOCK_ONLINE,
             StoreType.ONLINE, quantity, "Restocked to online store from batch " + batchId);
 
         logger.info("Restocked online store from batch {}: {} quantity: {}", batchId, productCode, quantity);
@@ -339,7 +339,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         if (remainingQuantity > 0) {
             int available = quantity - remainingQuantity;
-            throw new InsufficientStockException(productCode, available, quantity);
+            throw InsufficientStockException.forProduct(productCode, available, quantity);
         }
 
         return allocations;

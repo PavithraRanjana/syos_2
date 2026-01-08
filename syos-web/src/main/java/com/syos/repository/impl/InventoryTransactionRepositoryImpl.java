@@ -201,7 +201,7 @@ public class InventoryTransactionRepositoryImpl extends BaseRepository implement
             SELECT DATE(transaction_date) as trans_date,
                    COUNT(*) as transaction_count,
                    COALESCE(SUM(CASE WHEN transaction_type = 'SALE' THEN ABS(quantity_changed) ELSE 0 END), 0) as sales_qty,
-                   COALESCE(SUM(CASE WHEN transaction_type = 'RESTOCK' THEN quantity_changed ELSE 0 END), 0) as restock_qty
+                   COALESCE(SUM(CASE WHEN transaction_type IN ('RESTOCK_PHYSICAL', 'RESTOCK_ONLINE') THEN quantity_changed ELSE 0 END), 0) as restock_qty
             FROM inventory_transaction
             WHERE DATE(transaction_date) BETWEEN ? AND ?
             GROUP BY DATE(transaction_date)

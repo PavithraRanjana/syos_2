@@ -118,7 +118,7 @@ public class BillingServiceImpl implements BillingService {
         // Check stock availability
         if (!storeInventoryService.hasAvailableStock(productCode, bill.getStoreType(), quantity)) {
             int available = storeInventoryService.getAvailableQuantity(productCode, bill.getStoreType());
-            throw new InsufficientStockException(productCode, available, quantity);
+            throw InsufficientStockException.forProduct(productCode, available, quantity);
         }
 
         // Get batch allocations (FIFO)
@@ -173,7 +173,7 @@ public class BillingServiceImpl implements BillingService {
             String productCode = item.getProductCodeString();
             if (!storeInventoryService.hasAvailableStock(productCode, bill.getStoreType(), additionalNeeded)) {
                 int available = storeInventoryService.getAvailableQuantity(productCode, bill.getStoreType());
-                throw new InsufficientStockException(productCode, available + currentQty, newQuantity);
+                throw InsufficientStockException.forProduct(productCode, available + currentQty, newQuantity);
             }
         }
 
@@ -311,7 +311,7 @@ public class BillingServiceImpl implements BillingService {
             }
 
             if (!deducted) {
-                throw new InsufficientStockException(item.getProductCodeString(), 0, item.getQuantity());
+                throw InsufficientStockException.forProduct(item.getProductCodeString(), 0, item.getQuantity());
             }
 
             // Log transaction

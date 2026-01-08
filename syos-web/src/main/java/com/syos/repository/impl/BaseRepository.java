@@ -42,7 +42,7 @@ public abstract class BaseRepository {
             return mapper.map(rs);
         } catch (SQLException e) {
             logger.error("Query execution failed: {} - {}", sql, e.getMessage());
-            throw new RepositoryException("Database query failed", e);
+            throw new RepositoryException("Database query failed: " + e.getMessage(), e);
         }
     }
 
@@ -55,7 +55,7 @@ public abstract class BaseRepository {
             return stmt.executeUpdate();
         } catch (SQLException e) {
             logger.error("Update execution failed: {} - {}", sql, e.getMessage());
-            throw new RepositoryException("Database update failed", e);
+            throw new RepositoryException("Database update failed: " + e.getMessage(), e);
         }
     }
 
@@ -72,7 +72,7 @@ public abstract class BaseRepository {
             }
         } catch (SQLException e) {
             logger.error("Insert execution failed: {} - {}", sql, e.getMessage());
-            throw new RepositoryException("Database insert failed", e);
+            throw new RepositoryException("Database insert failed: " + e.getMessage(), e);
         }
     }
 

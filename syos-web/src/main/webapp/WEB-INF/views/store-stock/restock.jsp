@@ -78,7 +78,7 @@
             };
 
             try {
-                await apiFetch(`/store-inventory/${storeType}/restock`, {
+                await apiFetch('/store-inventory/' + storeType + '/restock', {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });

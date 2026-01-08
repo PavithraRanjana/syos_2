@@ -189,7 +189,7 @@ public abstract class BaseServlet extends HttpServlet {
             sendError(response, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } else if (e instanceof RepositoryException) {
             sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Database error occurred");
+                "Database error: " + e.getMessage());
         } else {
             sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred");

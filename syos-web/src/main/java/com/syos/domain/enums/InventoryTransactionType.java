@@ -5,8 +5,10 @@ package com.syos.domain.enums;
  */
 public enum InventoryTransactionType {
     SALE("Sale", "Stock reduced due to sale"),
-    RESTOCK("Restock", "Stock added from main inventory"),
+    RESTOCK_PHYSICAL("Restock Physical", "Stock added to physical store"),
+    RESTOCK_ONLINE("Restock Online", "Stock added to online store"),
     ADJUSTMENT("Adjustment", "Manual stock adjustment"),
+    RETURN("Return", "Stock returned"),
     EXPIRED("Expired", "Stock removed due to expiration"),
     PURCHASE("Purchase", "New stock received from supplier");
 
