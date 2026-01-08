@@ -5,6 +5,7 @@ import com.syos.domain.valueobjects.ProductCode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -93,6 +94,13 @@ public class MainInventory {
     }
 
     /**
+     * Checks if this batch is expiring soon (within 7 days, for JSP/EL access).
+     */
+    public boolean isExpiringSoon() {
+        return isExpiringSoon(7);
+    }
+
+    /**
      * Checks if this batch is expiring soon (within threshold days).
      */
     public boolean isExpiringSoon(int thresholdDays) {
@@ -159,12 +167,26 @@ public class MainInventory {
         return purchaseDate;
     }
 
+    /**
+     * Returns the purchase date formatted as MMM d, yyyy for display.
+     */
+    public String getPurchaseDateFormatted() {
+        return purchaseDate != null ? purchaseDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy")) : "";
+    }
+
     public void setPurchaseDate(LocalDate purchaseDate) {
         this.purchaseDate = purchaseDate;
     }
 
     public LocalDate getExpiryDate() {
         return expiryDate;
+    }
+
+    /**
+     * Returns the expiry date formatted as MMM d, yyyy for display.
+     */
+    public String getExpiryDateFormatted() {
+        return expiryDate != null ? expiryDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy")) : "";
     }
 
     public void setExpiryDate(LocalDate expiryDate) {

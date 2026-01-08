@@ -53,7 +53,7 @@ public class OnlineStoreInventoryRepositoryImpl extends BaseRepository implement
     private OnlineStoreInventory update(OnlineStoreInventory inventory) {
         String sql = """
             UPDATE online_store_inventory SET quantity_available = ?, restocked_date = ?
-            WHERE online_inventory_id = ?
+            WHERE online_store_inventory_id = ?
             """;
 
         executeUpdate(sql,
@@ -71,7 +71,7 @@ public class OnlineStoreInventoryRepositoryImpl extends BaseRepository implement
             FROM online_store_inventory osi
             JOIN product p ON osi.product_code = p.product_code
             JOIN main_inventory mi ON osi.main_inventory_id = mi.main_inventory_id
-            WHERE osi.online_inventory_id = ?
+            WHERE osi.online_store_inventory_id = ?
             """;
         return executeQuery(sql, rs -> mapToOptional(rs, this::mapRow), id);
     }
@@ -232,13 +232,13 @@ public class OnlineStoreInventoryRepositoryImpl extends BaseRepository implement
 
     @Override
     public boolean deleteById(Integer id) {
-        String sql = "DELETE FROM online_store_inventory WHERE online_inventory_id = ?";
+        String sql = "DELETE FROM online_store_inventory WHERE online_store_inventory_id = ?";
         return executeUpdate(sql, id) > 0;
     }
 
     @Override
     public boolean existsById(Integer id) {
-        String sql = "SELECT COUNT(*) FROM online_store_inventory WHERE online_inventory_id = ?";
+        String sql = "SELECT COUNT(*) FROM online_store_inventory WHERE online_store_inventory_id = ?";
         return executeQuery(sql, rs -> rs.next() && rs.getInt(1) > 0, id);
     }
 
@@ -250,7 +250,7 @@ public class OnlineStoreInventoryRepositoryImpl extends BaseRepository implement
 
     private OnlineStoreInventory mapRow(ResultSet rs) throws SQLException {
         OnlineStoreInventory inventory = new OnlineStoreInventory();
-        inventory.setOnlineInventoryId(rs.getInt("online_inventory_id"));
+        inventory.setOnlineInventoryId(rs.getInt("online_store_inventory_id"));
         inventory.setProductCode(new ProductCode(rs.getString("product_code")));
         inventory.setMainInventoryId(rs.getInt("main_inventory_id"));
         inventory.setQuantityAvailable(rs.getInt("quantity_available"));

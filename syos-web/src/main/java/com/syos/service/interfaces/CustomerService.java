@@ -1,5 +1,6 @@
 package com.syos.service.interfaces;
 
+import com.syos.domain.enums.UserRole;
 import com.syos.domain.models.Customer;
 
 import java.util.List;
@@ -94,6 +95,23 @@ public interface CustomerService {
      * Validates if a phone number is available for registration.
      */
     boolean isPhoneAvailable(String phone);
+
+    // ==================== Role Management (Admin) ====================
+
+    /**
+     * Updates a user's role (admin function).
+     */
+    boolean updateUserRole(Integer customerId, UserRole role);
+
+    /**
+     * Finds all users with a specific role.
+     */
+    List<Customer> findByRole(UserRole role);
+
+    /**
+     * Creates a new user with a specific role (admin function).
+     */
+    Customer createUserWithRole(String name, String email, String phone, String address, String password, UserRole role);
 
     /**
      * Authentication result.

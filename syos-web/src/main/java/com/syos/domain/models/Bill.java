@@ -7,6 +7,7 @@ import com.syos.domain.valueobjects.Money;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -268,6 +269,27 @@ public class Bill {
 
     public LocalDateTime getBillDate() {
         return billDate;
+    }
+
+    /**
+     * Returns the bill time formatted as HH:mm for display.
+     */
+    public String getBillTime() {
+        return billDate != null ? billDate.format(DateTimeFormatter.ofPattern("HH:mm")) : "";
+    }
+
+    /**
+     * Returns the bill date formatted as yyyy-MM-dd for display.
+     */
+    public String getBillDateFormatted() {
+        return billDate != null ? billDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "";
+    }
+
+    /**
+     * Returns the bill date and time formatted as yyyy-MM-dd HH:mm for display.
+     */
+    public String getBillDateTimeFormatted() {
+        return billDate != null ? billDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "";
     }
 
     public void setBillDate(LocalDateTime billDate) {

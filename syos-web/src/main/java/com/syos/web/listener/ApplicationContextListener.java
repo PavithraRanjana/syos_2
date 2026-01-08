@@ -183,6 +183,23 @@ public class ApplicationContextListener implements ServletContextListener {
         );
         ServiceRegistry.register(ReportService.class, reportService);
 
+        // Cart service (for online shopping)
+        CartService cartService = new CartServiceImpl(productService, storeInventoryService);
+        ServiceRegistry.register(CartService.class, cartService);
+
+        // Order repository and service (for online orders)
+        OrderRepository orderRepository = new OrderRepositoryImpl(dataSource);
+        ServiceRegistry.register(OrderRepository.class, orderRepository);
+
+        OrderService orderService = new OrderServiceImpl(
+            orderRepository,
+            cartService,
+            customerService,
+            inventoryService,
+            billingService
+        );
+        ServiceRegistry.register(OrderService.class, orderService);
+
         logger.info("Services registered. Total: {}", ServiceRegistry.getServiceCount());
     }
 }

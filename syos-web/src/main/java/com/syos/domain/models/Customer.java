@@ -1,12 +1,14 @@
 package com.syos.domain.models;
 
+import com.syos.domain.enums.UserRole;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
- * Entity representing an online customer.
+ * Entity representing a system user (customer, staff, manager, admin).
  */
 public class Customer {
 
@@ -16,6 +18,7 @@ public class Customer {
     private String phone;
     private String address;
     private String passwordHash;
+    private UserRole role;
     private LocalDate registrationDate;
     private boolean active;
     private LocalDateTime createdAt;
@@ -23,6 +26,7 @@ public class Customer {
 
     public Customer() {
         this.active = true;
+        this.role = UserRole.CUSTOMER;
         this.registrationDate = LocalDate.now();
     }
 
@@ -31,6 +35,7 @@ public class Customer {
         this.email = email;
         this.phone = phone;
         this.address = address;
+        this.role = UserRole.CUSTOMER;
         this.active = true;
         this.registrationDate = LocalDate.now();
     }
@@ -129,6 +134,13 @@ public class Customer {
         return registrationDate;
     }
 
+    /**
+     * Returns the registration date formatted as MMM d, yyyy for display.
+     */
+    public String getRegistrationDateFormatted() {
+        return registrationDate != null ? registrationDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy")) : "";
+    }
+
     public void setRegistrationDate(LocalDate registrationDate) {
         this.registrationDate = registrationDate;
     }
@@ -157,12 +169,28 @@ public class Customer {
         this.updatedAt = updatedAt;
     }
 
+    public UserRole getRole() {
+        return role != null ? role : UserRole.CUSTOMER;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role != null ? role : UserRole.CUSTOMER;
+    }
+
+    /**
+     * Get the role name as a string (for session storage).
+     */
+    public String getRoleName() {
+        return getRole().name();
+    }
+
     @Override
     public String toString() {
         return "Customer{" +
                 "customerId=" + customerId +
                 ", customerName='" + customerName + '\'' +
                 ", email='" + email + '\'' +
+                ", role=" + role +
                 ", active=" + active +
                 '}';
     }

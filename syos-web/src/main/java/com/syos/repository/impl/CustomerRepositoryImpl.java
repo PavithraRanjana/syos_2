@@ -1,5 +1,6 @@
 package com.syos.repository.impl;
 
+import com.syos.domain.enums.UserRole;
 import com.syos.domain.models.Customer;
 import com.syos.repository.interfaces.CustomerRepository;
 
@@ -34,8 +35,8 @@ public class CustomerRepositoryImpl extends BaseRepository implements CustomerRe
 
     private Customer insert(Customer customer) {
         String sql = """
-            INSERT INTO customer (customer_name, email, phone, address, password_hash, registration_date, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO customer (customer_name, email, phone, address, password_hash, role, registration_date, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
         Integer id = executeInsertAndGetId(sql,
@@ -44,6 +45,7 @@ public class CustomerRepositoryImpl extends BaseRepository implements CustomerRe
             customer.getPhone(),
             customer.getAddress(),
             customer.getPasswordHash(),
+            customer.getRole().name(),
             customer.getRegistrationDate() != null ? customer.getRegistrationDate() : LocalDate.now(),
             customer.isActive()
         );
@@ -53,7 +55,7 @@ public class CustomerRepositoryImpl extends BaseRepository implements CustomerRe
 
     private Customer update(Customer customer) {
         String sql = """
-            UPDATE customer SET customer_name = ?, email = ?, phone = ?, address = ?, is_active = ?
+            UPDATE customer SET customer_name = ?, email = ?, phone = ?, address = ?, role = ?, is_active = ?
             WHERE customer_id = ?
             """;
 
@@ -62,6 +64,7 @@ public class CustomerRepositoryImpl extends BaseRepository implements CustomerRe
             customer.getEmail(),
             customer.getPhone(),
             customer.getAddress(),
+            customer.getRole().name(),
             customer.isActive(),
             customer.getCustomerId()
         );
@@ -202,6 +205,22 @@ public class CustomerRepositoryImpl extends BaseRepository implements CustomerRe
         return executeQuery(sql, rs -> rs.next() ? rs.getLong(1) : 0L);
     }
 
+    /**
+     * Find all users with a specific role.
+     */
+    public List<Customer> findByRole(UserRole role) {
+        String sql = "SELECT * FROM customer WHERE role = ? ORDER BY customer_name";
+        return executeQuery(sql, rs -> mapToList(rs, this::mapRow), role.name());
+    }
+
+    /**
+     * Update a user's role.
+     */
+    public boolean updateRole(Integer customerId, UserRole role) {
+        String sql = "UPDATE customer SET role = ? WHERE customer_id = ?";
+        return executeUpdate(sql, role.name(), customerId) > 0;
+    }
+
     private Customer mapRow(ResultSet rs) throws SQLException {
         Customer customer = new Customer();
         customer.setCustomerId(rs.getInt("customer_id"));
@@ -210,6 +229,7 @@ public class CustomerRepositoryImpl extends BaseRepository implements CustomerRe
         customer.setPhone(rs.getString("phone"));
         customer.setAddress(rs.getString("address"));
         customer.setPasswordHash(rs.getString("password_hash"));
+        customer.setRole(UserRole.fromString(rs.getString("role")));
         customer.setRegistrationDate(toLocalDate(rs.getDate("registration_date")));
         customer.setActive(rs.getBoolean("is_active"));
         customer.setCreatedAt(toLocalDateTime(rs.getTimestamp("created_at")));

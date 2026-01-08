@@ -1,9 +1,11 @@
 package com.syos.service.impl;
 
+import com.syos.domain.enums.UserRole;
 import com.syos.domain.models.Customer;
 import com.syos.exception.CustomerNotFoundException;
 import com.syos.exception.DuplicateEmailException;
 import com.syos.exception.ValidationException;
+import com.syos.repository.impl.CustomerRepositoryImpl;
 import com.syos.repository.interfaces.CustomerRepository;
 import com.syos.service.interfaces.CustomerService;
 import org.slf4j.Logger;
@@ -247,6 +249,85 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public boolean isPhoneAvailable(String phone) {
         return !customerRepository.existsByPhone(phone);
+    }
+
+    // ==================== Role Management (Admin) ====================
+
+    @Override
+    public boolean updateUserRole(Integer customerId, UserRole role) {
+        logger.debug("Updating role for customer {} to {}", customerId, role);
+
+        if (!customerRepository.existsById(customerId)) {
+            throw new CustomerNotFoundException(customerId);
+        }
+
+        if (role == null) {
+            throw new ValidationException("Role is required");
+        }
+
+        // Use the implementation-specific method
+        if (customerRepository instanceof CustomerRepositoryImpl repoImpl) {
+            boolean updated = repoImpl.updateRole(customerId, role);
+            if (updated) {
+                logger.info("Role updated for customer {} to {}", customerId, role);
+            }
+            return updated;
+        }
+
+        // Fallback: update via entity
+        Customer customer = customerRepository.findById(customerId).orElseThrow();
+        customer.setRole(role);
+        customerRepository.save(customer);
+        logger.info("Role updated for customer {} to {}", customerId, role);
+        return true;
+    }
+
+    @Override
+    public List<Customer> findByRole(UserRole role) {
+        if (role == null) {
+            return List.of();
+        }
+
+        if (customerRepository instanceof CustomerRepositoryImpl repoImpl) {
+            return repoImpl.findByRole(role);
+        }
+
+        // Fallback: filter in memory
+        return customerRepository.findAll().stream()
+            .filter(c -> c.getRole() == role)
+            .toList();
+    }
+
+    @Override
+    public Customer createUserWithRole(String name, String email, String phone, String address, String password, UserRole role) {
+        logger.debug("Creating new user with role {}: {}", role, email);
+
+        // Validate inputs
+        validateName(name);
+        validateEmail(email);
+        validatePassword(password);
+
+        if (role == null) {
+            throw new ValidationException("Role is required");
+        }
+
+        // Check for duplicates
+        if (customerRepository.existsByEmail(email)) {
+            throw new DuplicateEmailException(email);
+        }
+
+        if (phone != null && !phone.isEmpty() && customerRepository.existsByPhone(phone)) {
+            throw new ValidationException("Phone number already registered: " + phone);
+        }
+
+        // Create user with role
+        Customer customer = new Customer(name, email, phone, address);
+        customer.setPassword(password);
+        customer.setRole(role);
+
+        Customer saved = customerRepository.save(customer);
+        logger.info("User created with role {}: {} (ID: {})", role, email, saved.getCustomerId());
+        return saved;
     }
 
     // ==================== Validation Methods ====================
