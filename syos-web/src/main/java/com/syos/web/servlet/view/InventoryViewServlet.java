@@ -19,7 +19,7 @@ import java.util.Optional;
 /**
  * Servlet for main inventory (batch) management views.
  */
-@WebServlet(urlPatterns = {"/inventory", "/inventory/*"})
+@WebServlet(urlPatterns = { "/inventory", "/inventory/*" })
 public class InventoryViewServlet extends BaseViewServlet {
 
     private InventoryService inventoryService;
@@ -179,11 +179,11 @@ public class InventoryViewServlet extends BaseViewServlet {
 
         // Total quantities
         int totalPhysicalReshelveQty = physicalReshelve.stream()
-            .mapToInt(ReshelveReport::quantityToReshelve).sum();
+                .mapToInt(ReshelveReport::quantityToReshelve).sum();
         int totalOnlineReshelveQty = onlineReshelve.stream()
-            .mapToInt(ReshelveReport::quantityToReshelve).sum();
+                .mapToInt(ReshelveReport::quantityToReshelve).sum();
         int totalReorderQty = reorderItems.stream()
-            .mapToInt(ReorderLevelReport::quantityToReorder).sum();
+                .mapToInt(ReorderLevelReport::quantityToReorder).sum();
 
         request.setAttribute("physicalReshelveCount", physicalReshelveCount);
         request.setAttribute("onlineReshelveCount", onlineReshelveCount);
@@ -194,7 +194,7 @@ public class InventoryViewServlet extends BaseViewServlet {
         request.setAttribute("totalOnlineReshelveQty", totalOnlineReshelveQty);
         request.setAttribute("totalReorderQty", totalReorderQty);
 
-        setActiveNav(request, "inventory");
+        setActiveNav(request, "reports");
         render(request, response, "inventory/reports.jsp");
     }
 }

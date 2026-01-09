@@ -150,7 +150,7 @@
                             <a href="${ctx}/store-stock" class="${activeNav == 'store-stock' ? 'nav-link-active' : 'nav-link'}">
                                 Store Stock
                             </a>
-                            <a href="${ctx}/inventory/reports" class="bg-green-600 text-white hover:bg-green-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                            <a href="${ctx}/inventory/reports" class="bg-green-600 text-white hover:bg-green-700 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeNav == 'reports' ? 'shadow-[0_0_25px_rgba(134,239,172,0.9)] border border-transparent' : 'border border-transparent'}">
                                 Reports
                             </a>
                         </c:if>
