@@ -53,7 +53,7 @@ public class PhysicalStoreInventoryRepositoryImpl extends BaseRepository impleme
     private PhysicalStoreInventory update(PhysicalStoreInventory inventory) {
         String sql = """
             UPDATE physical_store_inventory SET quantity_on_shelf = ?, restocked_date = ?
-            WHERE physical_inventory_id = ?
+            WHERE physical_store_inventory_id = ?
             """;
 
         executeUpdate(sql,
@@ -71,7 +71,7 @@ public class PhysicalStoreInventoryRepositoryImpl extends BaseRepository impleme
             FROM physical_store_inventory psi
             JOIN product p ON psi.product_code = p.product_code
             JOIN main_inventory mi ON psi.main_inventory_id = mi.main_inventory_id
-            WHERE psi.physical_inventory_id = ?
+            WHERE psi.physical_store_inventory_id = ?
             """;
         return executeQuery(sql, rs -> mapToOptional(rs, this::mapRow), id);
     }
@@ -234,13 +234,13 @@ public class PhysicalStoreInventoryRepositoryImpl extends BaseRepository impleme
 
     @Override
     public boolean deleteById(Integer id) {
-        String sql = "DELETE FROM physical_store_inventory WHERE physical_inventory_id = ?";
+        String sql = "DELETE FROM physical_store_inventory WHERE physical_store_inventory_id = ?";
         return executeUpdate(sql, id) > 0;
     }
 
     @Override
     public boolean existsById(Integer id) {
-        String sql = "SELECT COUNT(*) FROM physical_store_inventory WHERE physical_inventory_id = ?";
+        String sql = "SELECT COUNT(*) FROM physical_store_inventory WHERE physical_store_inventory_id = ?";
         return executeQuery(sql, rs -> rs.next() && rs.getInt(1) > 0, id);
     }
 
@@ -252,7 +252,7 @@ public class PhysicalStoreInventoryRepositoryImpl extends BaseRepository impleme
 
     private PhysicalStoreInventory mapRow(ResultSet rs) throws SQLException {
         PhysicalStoreInventory inventory = new PhysicalStoreInventory();
-        inventory.setPhysicalInventoryId(rs.getInt("physical_inventory_id"));
+        inventory.setPhysicalInventoryId(rs.getInt("physical_store_inventory_id"));
         inventory.setProductCode(new ProductCode(rs.getString("product_code")));
         inventory.setMainInventoryId(rs.getInt("main_inventory_id"));
         inventory.setQuantityOnShelf(rs.getInt("quantity_on_shelf"));

@@ -99,7 +99,7 @@ public class StoreInventoryApiServlet extends BaseApiServlet {
                 return;
             }
 
-            String storeTypeStr = parts[0];
+            String storeTypeStr = parts[0].toLowerCase();
             StoreType storeType = storeTypeStr.equals("physical") ?
                 StoreType.PHYSICAL : StoreType.ONLINE;
 
