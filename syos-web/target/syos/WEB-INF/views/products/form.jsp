@@ -101,6 +101,28 @@
                 </div>
             </div>
 
+            <!-- Minimum Stock Levels -->
+            <div class="border-t pt-4">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Minimum Stock Levels</h3>
+                <p class="text-xs text-gray-500 mb-3">Products below these levels will appear in the End of Day Reshelve Report</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="minPhysicalStock" class="input-label">Physical Store Minimum</label>
+                        <input type="number" id="minPhysicalStock" name="minPhysicalStock"
+                               value="${isEdit ? product.minPhysicalStock : '10'}"
+                               class="input-field" min="0"
+                               placeholder="10">
+                    </div>
+                    <div>
+                        <label for="minOnlineStock" class="input-label">Online Store Minimum</label>
+                        <input type="number" id="minOnlineStock" name="minOnlineStock"
+                               value="${isEdit ? product.minOnlineStock : '10'}"
+                               class="input-field" min="0"
+                               placeholder="10">
+                    </div>
+                </div>
+            </div>
+
             <!-- Active Status (Edit only) -->
             <c:if test="${isEdit}">
                 <div class="flex items-center">
@@ -144,7 +166,9 @@
                 description: formData.get('description') || null,
                 unitOfMeasure: formData.get('unitOfMeasure') || null,
                 categoryId: formData.get('categoryId') ? parseInt(formData.get('categoryId')) : null,
-                brandId: formData.get('brandId') ? parseInt(formData.get('brandId')) : null
+                brandId: formData.get('brandId') ? parseInt(formData.get('brandId')) : null,
+                minPhysicalStock: parseInt(formData.get('minPhysicalStock')) || 10,
+                minOnlineStock: parseInt(formData.get('minOnlineStock')) || 10
             };
 
             try {

@@ -251,6 +251,8 @@ public class ProductApiServlet extends BaseApiServlet {
         public BigDecimal unitPrice;
         public String description;
         public String unitOfMeasure;
+        public Integer minPhysicalStock;
+        public Integer minOnlineStock;
 
         public Product toProduct() {
             Product product = new Product();
@@ -269,6 +271,12 @@ public class ProductApiServlet extends BaseApiServlet {
                 product.setUnitOfMeasure(
                     com.syos.domain.enums.UnitOfMeasure.fromString(unitOfMeasure));
             }
+            if (minPhysicalStock != null) {
+                product.setMinPhysicalStock(minPhysicalStock);
+            }
+            if (minOnlineStock != null) {
+                product.setMinOnlineStock(minOnlineStock);
+            }
             return product;
         }
 
@@ -284,6 +292,12 @@ public class ProductApiServlet extends BaseApiServlet {
             if (unitOfMeasure != null) {
                 product.setUnitOfMeasure(
                     com.syos.domain.enums.UnitOfMeasure.fromString(unitOfMeasure));
+            }
+            if (minPhysicalStock != null) {
+                product.setMinPhysicalStock(minPhysicalStock);
+            }
+            if (minOnlineStock != null) {
+                product.setMinOnlineStock(minOnlineStock);
             }
         }
     }

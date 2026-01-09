@@ -179,7 +179,8 @@ public class ApplicationContextListener implements ServletContextListener {
             billItemRepository,
             mainInventoryRepository,
             physicalStoreRepository,
-            onlineStoreRepository
+            onlineStoreRepository,
+            productRepository
         );
         ServiceRegistry.register(ReportService.class, reportService);
 

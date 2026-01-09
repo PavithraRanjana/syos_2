@@ -98,6 +98,42 @@
                         <p class="text-sm text-gray-500">Items to replenish</p>
                     </div>
                 </a>
+
+                <a href="${pageContext.request.contextPath}/reports/reshelve" class="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                    <div class="p-3 bg-red-500 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-gray-900">End of Day Reshelve Report</p>
+                        <p class="text-sm text-gray-500">Items below minimum stock</p>
+                    </div>
+                </a>
+
+                <a href="${pageContext.request.contextPath}/reports/reorder-level" class="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                    <div class="p-3 bg-orange-500 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-gray-900">Reorder Level Report</p>
+                        <p class="text-sm text-gray-500">Main inventory below threshold</p>
+                    </div>
+                </a>
+
+                <a href="${pageContext.request.contextPath}/reports/batch-stock" class="flex items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                    <div class="p-3 bg-indigo-500 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-gray-900">Batch-wise Stock Report</p>
+                        <p class="text-sm text-gray-500">Stock details by batch</p>
+                    </div>
+                </a>
             </div>
         </div>
     </div>

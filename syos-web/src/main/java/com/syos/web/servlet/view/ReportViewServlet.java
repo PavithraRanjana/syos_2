@@ -43,6 +43,12 @@ public class ReportViewServlet extends BaseViewServlet {
                 showTopProductsReport(request, response);
             } else if (pathInfo.equals("/restock")) {
                 showRestockRecommendations(request, response);
+            } else if (pathInfo.equals("/reshelve")) {
+                showReshelveReport(request, response);
+            } else if (pathInfo.equals("/reorder-level")) {
+                showReorderLevelReport(request, response);
+            } else if (pathInfo.equals("/batch-stock")) {
+                showBatchStockReport(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -154,5 +160,69 @@ public class ReportViewServlet extends BaseViewServlet {
 
         setActiveNav(request, "reports");
         render(request, response, "reports/restock.jsp");
+    }
+
+    private void showReshelveReport(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String storeTypeStr = getStringParameter(request, "storeType", "PHYSICAL");
+        StoreType storeType = StoreType.valueOf(storeTypeStr);
+
+        List<ReshelveReport> reshelveItems = reportService.getReshelveReport(storeType);
+        request.setAttribute("reshelveItems", reshelveItems);
+
+        // Calculate totals
+        int totalItems = reshelveItems.size();
+        int totalQuantityToReshelve = reshelveItems.stream()
+            .mapToInt(ReshelveReport::quantityToReshelve)
+            .sum();
+        request.setAttribute("totalItems", totalItems);
+        request.setAttribute("totalQuantityToReshelve", totalQuantityToReshelve);
+
+        request.setAttribute("storeType", storeType);
+
+        setActiveNav(request, "reports");
+        render(request, response, "reports/reshelve.jsp");
+    }
+
+    private void showReorderLevelReport(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int threshold = getIntParameter(request, "threshold", 70);
+
+        List<ReorderLevelReport> reorderItems = reportService.getReorderLevelReport(threshold);
+        request.setAttribute("reorderItems", reorderItems);
+
+        // Calculate totals
+        int totalItems = reorderItems.size();
+        int totalQuantityToReorder = reorderItems.stream()
+            .mapToInt(ReorderLevelReport::quantityToReorder)
+            .sum();
+        request.setAttribute("totalItems", totalItems);
+        request.setAttribute("totalQuantityToReorder", totalQuantityToReorder);
+        request.setAttribute("threshold", threshold);
+
+        setActiveNav(request, "reports");
+        render(request, response, "reports/reorder-level.jsp");
+    }
+
+    private void showBatchStockReport(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        List<BatchStockReport> batchItems = reportService.getBatchStockReport();
+        request.setAttribute("batchItems", batchItems);
+
+        // Calculate totals
+        int totalBatches = batchItems.size();
+        int totalOriginal = batchItems.stream().mapToInt(BatchStockReport::originalQuantity).sum();
+        int totalRemaining = batchItems.stream().mapToInt(BatchStockReport::remainingInMain).sum();
+        int totalPhysical = batchItems.stream().mapToInt(BatchStockReport::quantityInPhysical).sum();
+        int totalOnline = batchItems.stream().mapToInt(BatchStockReport::quantityInOnline).sum();
+
+        request.setAttribute("totalBatches", totalBatches);
+        request.setAttribute("totalOriginal", totalOriginal);
+        request.setAttribute("totalRemaining", totalRemaining);
+        request.setAttribute("totalPhysical", totalPhysical);
+        request.setAttribute("totalOnline", totalOnline);
+
+        setActiveNav(request, "reports");
+        render(request, response, "reports/batch-stock.jsp");
     }
 }

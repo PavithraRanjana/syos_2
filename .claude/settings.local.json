@@ -10,7 +10,9 @@
       "Bash(grep:*)",
       "Bash(xargs:*)",
       "Bash(SESSION=\"17C6431E6D86CCC307A42062E0E3C44E\":*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)"
     ]
   }
 }

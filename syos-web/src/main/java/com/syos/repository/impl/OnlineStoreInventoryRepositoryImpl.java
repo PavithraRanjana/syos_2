@@ -181,13 +181,13 @@ public class OnlineStoreInventoryRepositoryImpl extends BaseRepository implement
     @Override
     public List<ProductStockSummary> getStockSummary() {
         String sql = """
-            SELECT osi.product_code, p.product_name,
+            SELECT p.product_code, p.product_name,
                    COALESCE(SUM(osi.quantity_available), 0) as total_qty,
                    COUNT(DISTINCT osi.main_inventory_id) as batch_count
             FROM product p
             LEFT JOIN online_store_inventory osi ON p.product_code = osi.product_code
             WHERE p.is_active = TRUE
-            GROUP BY osi.product_code, p.product_name
+            GROUP BY p.product_code, p.product_name
             ORDER BY p.product_name
             """;
 

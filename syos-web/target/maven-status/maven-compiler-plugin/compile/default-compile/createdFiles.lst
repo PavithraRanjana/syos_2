@@ -7,6 +7,7 @@ com/syos/domain/models/BillItem.class
 com/syos/domain/enums/UserRole.class
 com/syos/repository/interfaces/PhysicalStoreInventoryRepository.class
 com/syos/domain/enums/InventoryTransactionType.class
+com/syos/service/interfaces/ReportService$ReshelveReport.class
 com/syos/service/interfaces/CartService$StockValidationResult.class
 com/syos/service/interfaces/InventoryService$ProductInventorySummary.class
 com/syos/exception/CustomerRegistrationException.class
@@ -79,6 +80,7 @@ com/syos/exception/SyosException.class
 com/syos/config/ThreadPoolConfig$2.class
 com/syos/domain/valueobjects/ProductCode.class
 com/syos/web/servlet/api/CustomerApiServlet$CustomerResponse.class
+com/syos/service/interfaces/ReportService$ReorderLevelReport.class
 com/syos/domain/models/Bill.class
 com/syos/service/interfaces/OrderService$OrderStats.class
 com/syos/config/ThreadPoolConfig$3.class
@@ -185,6 +187,7 @@ com/syos/domain/models/InventoryTransaction.class
 com/syos/web/servlet/api/BillingApiServlet$BillSummaryResponse.class
 com/syos/service/interfaces/ReportService$LowStockReport.class
 com/syos/service/impl/BillingServiceImpl.class
+com/syos/service/interfaces/ReportService$BatchStockReport.class
 com/syos/repository/impl/BillItemRepositoryImpl.class
 com/syos/web/dto/request/LoginRequest.class
 com/syos/web/dto/response/ApiResponse.class

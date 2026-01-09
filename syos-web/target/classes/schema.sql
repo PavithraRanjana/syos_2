@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS product (
     description TEXT,
     unit_of_measure VARCHAR(20) DEFAULT 'PCS',
     is_active BOOLEAN DEFAULT TRUE,
+    min_physical_stock INT DEFAULT 10,
+    min_online_stock INT DEFAULT 10,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES category(category_id),

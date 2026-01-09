@@ -38,8 +38,9 @@ public class ProductRepositoryImpl extends BaseRepository implements ProductRepo
     private Product insert(Product product) {
         String sql = """
             INSERT INTO product (product_code, product_name, category_id, subcategory_id,
-                brand_id, unit_price, description, unit_of_measure, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                brand_id, unit_price, description, unit_of_measure, is_active,
+                min_physical_stock, min_online_stock)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
         executeUpdate(sql,
@@ -51,7 +52,9 @@ public class ProductRepositoryImpl extends BaseRepository implements ProductRepo
             product.getUnitPrice().getAmount(),
             product.getDescription(),
             product.getUnitOfMeasure().getSymbol(),
-            product.isActive()
+            product.isActive(),
+            product.getMinPhysicalStock(),
+            product.getMinOnlineStock()
         );
 
         return findByProductCode(product.getProductCodeString()).orElse(product);
@@ -60,7 +63,8 @@ public class ProductRepositoryImpl extends BaseRepository implements ProductRepo
     private Product update(Product product) {
         String sql = """
             UPDATE product SET product_name = ?, category_id = ?, subcategory_id = ?,
-                brand_id = ?, unit_price = ?, description = ?, unit_of_measure = ?, is_active = ?
+                brand_id = ?, unit_price = ?, description = ?, unit_of_measure = ?, is_active = ?,
+                min_physical_stock = ?, min_online_stock = ?
             WHERE product_code = ?
             """;
 
@@ -73,6 +77,8 @@ public class ProductRepositoryImpl extends BaseRepository implements ProductRepo
             product.getDescription(),
             product.getUnitOfMeasure().getSymbol(),
             product.isActive(),
+            product.getMinPhysicalStock(),
+            product.getMinOnlineStock(),
             product.getProductCodeString()
         );
 
@@ -354,6 +360,8 @@ public class ProductRepositoryImpl extends BaseRepository implements ProductRepo
         product.setDescription(rs.getString("description"));
         product.setUnitOfMeasure(UnitOfMeasure.fromString(rs.getString("unit_of_measure")));
         product.setActive(rs.getBoolean("is_active"));
+        product.setMinPhysicalStock(rs.getInt("min_physical_stock"));
+        product.setMinOnlineStock(rs.getInt("min_online_stock"));
         product.setCreatedAt(toLocalDateTime(rs.getTimestamp("created_at")));
         product.setUpdatedAt(toLocalDateTime(rs.getTimestamp("updated_at")));
 

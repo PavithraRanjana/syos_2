@@ -183,13 +183,13 @@ public class PhysicalStoreInventoryRepositoryImpl extends BaseRepository impleme
     @Override
     public List<ProductStockSummary> getStockSummary() {
         String sql = """
-            SELECT psi.product_code, p.product_name,
+            SELECT p.product_code, p.product_name,
                    COALESCE(SUM(psi.quantity_on_shelf), 0) as total_qty,
                    COUNT(DISTINCT psi.main_inventory_id) as batch_count
             FROM product p
             LEFT JOIN physical_store_inventory psi ON p.product_code = psi.product_code
             WHERE p.is_active = TRUE
-            GROUP BY psi.product_code, p.product_name
+            GROUP BY p.product_code, p.product_name
             ORDER BY p.product_name
             """;
 

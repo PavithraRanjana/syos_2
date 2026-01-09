@@ -4,11 +4,13 @@ import com.syos.domain.enums.StoreType;
 import com.syos.domain.models.MainInventory;
 import com.syos.domain.models.OnlineStoreInventory;
 import com.syos.domain.models.PhysicalStoreInventory;
+import com.syos.domain.models.Product;
 import com.syos.repository.interfaces.BillItemRepository;
 import com.syos.repository.interfaces.BillRepository;
 import com.syos.repository.interfaces.MainInventoryRepository;
 import com.syos.repository.interfaces.OnlineStoreInventoryRepository;
 import com.syos.repository.interfaces.PhysicalStoreInventoryRepository;
+import com.syos.repository.interfaces.ProductRepository;
 import com.syos.service.interfaces.ReportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,18 +37,21 @@ public class ReportServiceImpl implements ReportService {
     private final MainInventoryRepository mainInventoryRepository;
     private final PhysicalStoreInventoryRepository physicalStoreRepository;
     private final OnlineStoreInventoryRepository onlineStoreRepository;
+    private final ProductRepository productRepository;
 
     public ReportServiceImpl(
             BillRepository billRepository,
             BillItemRepository billItemRepository,
             MainInventoryRepository mainInventoryRepository,
             PhysicalStoreInventoryRepository physicalStoreRepository,
-            OnlineStoreInventoryRepository onlineStoreRepository) {
+            OnlineStoreInventoryRepository onlineStoreRepository,
+            ProductRepository productRepository) {
         this.billRepository = billRepository;
         this.billItemRepository = billItemRepository;
         this.mainInventoryRepository = mainInventoryRepository;
         this.physicalStoreRepository = physicalStoreRepository;
         this.onlineStoreRepository = onlineStoreRepository;
+        this.productRepository = productRepository;
     }
 
     // ==================== Sales Reports ====================
@@ -310,6 +315,185 @@ public class ReportServiceImpl implements ReportService {
         recommendations.sort((a, b) -> Integer.compare(a.daysOfStockRemaining(), b.daysOfStockRemaining()));
 
         return recommendations;
+    }
+
+    @Override
+    public List<ReshelveReport> getReshelveReport(StoreType storeType) {
+        logger.debug("Generating reshelve report for store type: {}", storeType);
+
+        List<ReshelveReport> reports = new ArrayList<>();
+
+        if (storeType == StoreType.PHYSICAL) {
+            // Get stock summary for physical store
+            List<PhysicalStoreInventoryRepository.ProductStockSummary> stockSummaries =
+                physicalStoreRepository.getStockSummary();
+
+            for (PhysicalStoreInventoryRepository.ProductStockSummary summary : stockSummaries) {
+                // Get the product to find its minimum stock level
+                Product product = productRepository.findByProductCode(summary.productCode()).orElse(null);
+                if (product == null) continue;
+
+                int minStock = product.getMinPhysicalStock();
+                int currentStock = summary.totalQuantity();
+
+                if (currentStock < minStock) {
+                    int quantityToReshelve = minStock - currentStock;
+                    reports.add(new ReshelveReport(
+                        summary.productCode(),
+                        summary.productName(),
+                        currentStock,
+                        minStock,
+                        quantityToReshelve
+                    ));
+                }
+            }
+
+            // Also check for products with zero stock that have a minimum > 0
+            List<Product> allProducts = productRepository.findAllActive();
+            for (Product product : allProducts) {
+                if (product.getMinPhysicalStock() > 0) {
+                    boolean hasStock = stockSummaries.stream()
+                        .anyMatch(s -> s.productCode().equals(product.getProductCodeString()));
+                    if (!hasStock) {
+                        reports.add(new ReshelveReport(
+                            product.getProductCodeString(),
+                            product.getProductName(),
+                            0,
+                            product.getMinPhysicalStock(),
+                            product.getMinPhysicalStock()
+                        ));
+                    }
+                }
+            }
+        } else {
+            // Get stock summary for online store
+            List<OnlineStoreInventoryRepository.ProductStockSummary> stockSummaries =
+                onlineStoreRepository.getStockSummary();
+
+            for (OnlineStoreInventoryRepository.ProductStockSummary summary : stockSummaries) {
+                // Get the product to find its minimum stock level
+                Product product = productRepository.findByProductCode(summary.productCode()).orElse(null);
+                if (product == null) continue;
+
+                int minStock = product.getMinOnlineStock();
+                int currentStock = summary.totalQuantity();
+
+                if (currentStock < minStock) {
+                    int quantityToReshelve = minStock - currentStock;
+                    reports.add(new ReshelveReport(
+                        summary.productCode(),
+                        summary.productName(),
+                        currentStock,
+                        minStock,
+                        quantityToReshelve
+                    ));
+                }
+            }
+
+            // Also check for products with zero stock that have a minimum > 0
+            List<Product> allProducts = productRepository.findAllActive();
+            for (Product product : allProducts) {
+                if (product.getMinOnlineStock() > 0) {
+                    boolean hasStock = stockSummaries.stream()
+                        .anyMatch(s -> s.productCode().equals(product.getProductCodeString()));
+                    if (!hasStock) {
+                        reports.add(new ReshelveReport(
+                            product.getProductCodeString(),
+                            product.getProductName(),
+                            0,
+                            product.getMinOnlineStock(),
+                            product.getMinOnlineStock()
+                        ));
+                    }
+                }
+            }
+        }
+
+        // Sort by quantity to reshelve (descending - most urgent first)
+        reports.sort((a, b) -> Integer.compare(b.quantityToReshelve(), a.quantityToReshelve()));
+
+        return reports;
+    }
+
+    @Override
+    public List<ReorderLevelReport> getReorderLevelReport(int threshold) {
+        logger.debug("Generating reorder level report with threshold: {}", threshold);
+
+        List<ReorderLevelReport> reports = new ArrayList<>();
+
+        // Get all active products
+        List<Product> allProducts = productRepository.findAllActive();
+
+        for (Product product : allProducts) {
+            // Get total remaining quantity in main inventory for this product
+            List<MainInventory> batches = mainInventoryRepository.findByProductCode(product.getProductCodeString());
+
+            int totalRemaining = batches.stream()
+                .mapToInt(MainInventory::getRemainingQuantity)
+                .sum();
+
+            if (totalRemaining < threshold) {
+                int quantityToReorder = threshold - totalRemaining;
+                reports.add(new ReorderLevelReport(
+                    product.getProductCodeString(),
+                    product.getProductName(),
+                    totalRemaining,
+                    threshold,
+                    quantityToReorder
+                ));
+            }
+        }
+
+        // Sort by total remaining quantity (ascending - lowest stock first)
+        reports.sort((a, b) -> Integer.compare(a.totalRemainingQuantity(), b.totalRemainingQuantity()));
+
+        return reports;
+    }
+
+    @Override
+    public List<BatchStockReport> getBatchStockReport() {
+        logger.debug("Generating batch-wise stock report");
+
+        List<BatchStockReport> reports = new ArrayList<>();
+
+        // Get all batches from main inventory
+        List<MainInventory> allBatches = mainInventoryRepository.findAll();
+
+        for (MainInventory batch : allBatches) {
+            String productCode = batch.getProductCodeString();
+            int batchId = batch.getMainInventoryId();
+
+            // Get quantity in physical store for this batch
+            int physicalQty = physicalStoreRepository.findByProductCodeAndBatchId(productCode, batchId)
+                .map(inv -> inv.getQuantityOnShelf())
+                .orElse(0);
+
+            // Get quantity in online store for this batch
+            int onlineQty = onlineStoreRepository.findByProductCodeAndBatchId(productCode, batchId)
+                .map(inv -> inv.getQuantityAvailable())
+                .orElse(0);
+
+            reports.add(new BatchStockReport(
+                productCode,
+                batch.getProductName(),
+                batchId,
+                batch.getPurchaseDate(),
+                batch.getExpiryDate(),
+                batch.getQuantityReceived(),
+                batch.getRemainingQuantity(),
+                physicalQty,
+                onlineQty
+            ));
+        }
+
+        // Sort by product code, then by batch number
+        reports.sort((a, b) -> {
+            int codeCompare = a.productCode().compareTo(b.productCode());
+            if (codeCompare != 0) return codeCompare;
+            return Integer.compare(a.batchNumber(), b.batchNumber());
+        });
+
+        return reports;
     }
 
     // ==================== Dashboard Reports ====================

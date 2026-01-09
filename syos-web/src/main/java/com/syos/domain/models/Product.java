@@ -21,6 +21,8 @@ public class Product {
     private String description;
     private UnitOfMeasure unitOfMeasure;
     private boolean active;
+    private int minPhysicalStock;
+    private int minOnlineStock;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -31,6 +33,8 @@ public class Product {
 
     public Product() {
         this.active = true;
+        this.minPhysicalStock = 10;
+        this.minOnlineStock = 10;
     }
 
     public Product(ProductCode productCode, String productName, Integer categoryId,
@@ -43,6 +47,8 @@ public class Product {
         this.unitPrice = unitPrice;
         this.active = true;
         this.unitOfMeasure = UnitOfMeasure.PCS;
+        this.minPhysicalStock = 10;
+        this.minOnlineStock = 10;
     }
 
     // Business Methods
@@ -138,6 +144,22 @@ public class Product {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public int getMinPhysicalStock() {
+        return minPhysicalStock;
+    }
+
+    public void setMinPhysicalStock(int minPhysicalStock) {
+        this.minPhysicalStock = minPhysicalStock;
+    }
+
+    public int getMinOnlineStock() {
+        return minOnlineStock;
+    }
+
+    public void setMinOnlineStock(int minOnlineStock) {
+        this.minOnlineStock = minOnlineStock;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -19,6 +19,8 @@ public class ProductResponse {
     private String description;
     private boolean active;
     private int availableStock;
+    private int minPhysicalStock;
+    private int minOnlineStock;
 
     public ProductResponse() {
     }
@@ -39,6 +41,8 @@ public class ProductResponse {
             product.getUnitOfMeasure().getSymbol() : null;
         response.description = product.getDescription();
         response.active = product.isActive();
+        response.minPhysicalStock = product.getMinPhysicalStock();
+        response.minOnlineStock = product.getMinOnlineStock();
         return response;
     }
 
@@ -131,5 +135,21 @@ public class ProductResponse {
 
     public void setAvailableStock(int availableStock) {
         this.availableStock = availableStock;
+    }
+
+    public int getMinPhysicalStock() {
+        return minPhysicalStock;
+    }
+
+    public void setMinPhysicalStock(int minPhysicalStock) {
+        this.minPhysicalStock = minPhysicalStock;
+    }
+
+    public int getMinOnlineStock() {
+        return minOnlineStock;
+    }
+
+    public void setMinOnlineStock(int minOnlineStock) {
+        this.minOnlineStock = minOnlineStock;
     }
 }

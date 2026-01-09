@@ -65,6 +65,23 @@ public interface ReportService {
      */
     List<RestockRecommendation> getRestockRecommendations(StoreType storeType, int daysOfSalesData);
 
+    /**
+     * Gets items that need to be reshelved (stock below minimum threshold).
+     * This report shows products where current stock is below the configured minimum.
+     */
+    List<ReshelveReport> getReshelveReport(StoreType storeType);
+
+    /**
+     * Gets products that need to be reordered based on main inventory levels.
+     * Products with total remaining quantity below the threshold will appear.
+     */
+    List<ReorderLevelReport> getReorderLevelReport(int threshold);
+
+    /**
+     * Gets batch-wise stock report showing details of each batch in main inventory.
+     */
+    List<BatchStockReport> getBatchStockReport();
+
     // ==================== Dashboard Reports ====================
 
     /**
@@ -135,6 +152,34 @@ public interface ReportService {
         int averageDailySales,
         int daysOfStockRemaining,
         int recommendedRestock
+    ) {}
+
+    record ReshelveReport(
+        String productCode,
+        String productName,
+        int currentStock,
+        int minimumStock,
+        int quantityToReshelve
+    ) {}
+
+    record ReorderLevelReport(
+        String productCode,
+        String productName,
+        int totalRemainingQuantity,
+        int reorderThreshold,
+        int quantityToReorder
+    ) {}
+
+    record BatchStockReport(
+        String productCode,
+        String productName,
+        int batchNumber,
+        LocalDate purchaseDate,
+        LocalDate expiryDate,
+        int originalQuantity,
+        int remainingInMain,
+        int quantityInPhysical,
+        int quantityInOnline
     ) {}
 
     record DashboardSummary(
