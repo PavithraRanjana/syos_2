@@ -1,9 +1,12 @@
 package com.syos.web.servlet.view;
 
 import com.syos.config.ServiceRegistry;
+import com.syos.domain.enums.StoreType;
 import com.syos.domain.models.MainInventory;
 import com.syos.service.interfaces.InventoryService;
 import com.syos.service.interfaces.InventoryService.ProductInventorySummary;
+import com.syos.service.interfaces.ReportService;
+import com.syos.service.interfaces.ReportService.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,11 +23,13 @@ import java.util.Optional;
 public class InventoryViewServlet extends BaseViewServlet {
 
     private InventoryService inventoryService;
+    private ReportService reportService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         inventoryService = ServiceRegistry.get(InventoryService.class);
+        reportService = ServiceRegistry.get(ReportService.class);
     }
 
     @Override
@@ -43,6 +48,8 @@ public class InventoryViewServlet extends BaseViewServlet {
                 showExpiring(request, response);
             } else if (pathInfo.equals("/expired")) {
                 showExpired(request, response);
+            } else if (pathInfo.equals("/reports")) {
+                showReportsDashboard(request, response);
             } else if (pathInfo.startsWith("/view/")) {
                 String batchId = pathInfo.substring("/view/".length());
                 viewBatch(batchId, request, response);
@@ -153,5 +160,41 @@ public class InventoryViewServlet extends BaseViewServlet {
         request.setAttribute("totalQuantity", totalQuantity);
         setActiveNav(request, "inventory");
         render(request, response, "inventory/product-batches.jsp");
+    }
+
+    private void showReportsDashboard(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Get summary counts for the dashboard
+        List<ReshelveReport> physicalReshelve = reportService.getReshelveReport(StoreType.PHYSICAL);
+        List<ReshelveReport> onlineReshelve = reportService.getReshelveReport(StoreType.ONLINE);
+        List<ReorderLevelReport> reorderItems = reportService.getReorderLevelReport(70);
+        List<BatchStockReport> batchItems = reportService.getBatchStockReport();
+
+        // Summary stats
+        int physicalReshelveCount = physicalReshelve.size();
+        int onlineReshelveCount = onlineReshelve.size();
+        int totalReshelveCount = physicalReshelveCount + onlineReshelveCount;
+        int reorderCount = reorderItems.size();
+        int batchCount = batchItems.size();
+
+        // Total quantities
+        int totalPhysicalReshelveQty = physicalReshelve.stream()
+            .mapToInt(ReshelveReport::quantityToReshelve).sum();
+        int totalOnlineReshelveQty = onlineReshelve.stream()
+            .mapToInt(ReshelveReport::quantityToReshelve).sum();
+        int totalReorderQty = reorderItems.stream()
+            .mapToInt(ReorderLevelReport::quantityToReorder).sum();
+
+        request.setAttribute("physicalReshelveCount", physicalReshelveCount);
+        request.setAttribute("onlineReshelveCount", onlineReshelveCount);
+        request.setAttribute("totalReshelveCount", totalReshelveCount);
+        request.setAttribute("reorderCount", reorderCount);
+        request.setAttribute("batchCount", batchCount);
+        request.setAttribute("totalPhysicalReshelveQty", totalPhysicalReshelveQty);
+        request.setAttribute("totalOnlineReshelveQty", totalOnlineReshelveQty);
+        request.setAttribute("totalReorderQty", totalReorderQty);
+
+        setActiveNav(request, "inventory");
+        render(request, response, "inventory/reports.jsp");
     }
 }

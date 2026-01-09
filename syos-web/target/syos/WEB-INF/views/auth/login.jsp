@@ -169,7 +169,7 @@
                         const roleRedirects = {
                             'CUSTOMER': '/shop',
                             'CASHIER': '/pos',
-                            'INVENTORY_MANAGER': '/inventory',
+                            'INVENTORY_MANAGER': '/inventory/reports',
                             'MANAGER': '/reports',
                             'ADMIN': '/admin'
                         };

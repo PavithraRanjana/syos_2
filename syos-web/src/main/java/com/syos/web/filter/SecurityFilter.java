@@ -64,7 +64,10 @@ public class SecurityFilter implements Filter {
         "/inventory",
         "/store-stock",
         "/api/inventory",
-        "/api/store-inventory"
+        "/api/store-inventory",
+        "/reports/reshelve",
+        "/reports/reorder-level",
+        "/reports/batch-stock"
     );
 
     // Paths for MANAGER role (reports only)
@@ -282,7 +285,7 @@ public class SecurityFilter implements Filter {
         return switch (role) {
             case CUSTOMER -> "/shop";
             case CASHIER -> "/pos";
-            case INVENTORY_MANAGER -> "/inventory";
+            case INVENTORY_MANAGER -> "/inventory/reports";
             case MANAGER -> "/reports";
             case ADMIN -> "/admin";
         };

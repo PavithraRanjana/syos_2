@@ -54,7 +54,7 @@ public class AuthViewServlet extends HttpServlet {
         return switch (role) {
             case "CUSTOMER" -> "/shop";
             case "CASHIER" -> "/pos";
-            case "INVENTORY_MANAGER" -> "/inventory";
+            case "INVENTORY_MANAGER" -> "/inventory/reports";
             case "MANAGER" -> "/reports";
             case "ADMIN" -> "/admin";
             default -> "/shop";
