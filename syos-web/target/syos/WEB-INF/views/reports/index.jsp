@@ -75,18 +75,6 @@
         <div class="card">
             <h2 class="card-header">Inventory Reports</h2>
             <div class="space-y-3">
-                <a href="${pageContext.request.contextPath}/reports/restock" class="flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
-                    <div class="p-3 bg-syos-warning rounded-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <p class="font-medium text-gray-900">Restock Recommendations</p>
-                        <p class="text-sm text-gray-500">Items to replenish</p>
-                    </div>
-                </a>
-
                 <a href="${pageContext.request.contextPath}/reports/reshelve" class="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
                     <div class="p-3 bg-red-500 rounded-lg">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

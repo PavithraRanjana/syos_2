@@ -39,8 +39,6 @@ public class ReportViewServlet extends BaseViewServlet {
                 showSalesReport(request, response);
             } else if (pathInfo.equals("/top-products")) {
                 showTopProductsReport(request, response);
-            } else if (pathInfo.equals("/restock")) {
-                showRestockRecommendations(request, response);
             } else if (pathInfo.equals("/reshelve")) {
                 showReshelveReport(request, response);
             } else if (pathInfo.equals("/reorder-level")) {
@@ -111,22 +109,6 @@ public class ReportViewServlet extends BaseViewServlet {
 
         setActiveNav(request, "reports");
         render(request, response, "reports/top-products.jsp");
-    }
-
-    private void showRestockRecommendations(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String storeTypeStr = getStringParameter(request, "storeType", "PHYSICAL");
-        StoreType storeType = StoreType.valueOf(storeTypeStr);
-        int salesDays = getIntParameter(request, "salesDays", 30);
-
-        List<RestockRecommendation> recommendations = reportService.getRestockRecommendations(storeType, salesDays);
-        request.setAttribute("recommendations", recommendations);
-
-        request.setAttribute("storeType", storeType);
-        request.setAttribute("salesDays", salesDays);
-
-        setActiveNav(request, "reports");
-        render(request, response, "reports/restock.jsp");
     }
 
     private void showReshelveReport(HttpServletRequest request, HttpServletResponse response)
