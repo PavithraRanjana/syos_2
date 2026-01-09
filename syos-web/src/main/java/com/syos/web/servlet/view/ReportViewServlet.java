@@ -37,8 +37,6 @@ public class ReportViewServlet extends BaseViewServlet {
                 showReportsHome(request, response);
             } else if (pathInfo.equals("/sales")) {
                 showSalesReport(request, response);
-            } else if (pathInfo.equals("/inventory")) {
-                showInventoryReport(request, response);
             } else if (pathInfo.equals("/top-products")) {
                 showTopProductsReport(request, response);
             } else if (pathInfo.equals("/restock")) {
@@ -93,37 +91,6 @@ public class ReportViewServlet extends BaseViewServlet {
 
         setActiveNav(request, "reports");
         render(request, response, "reports/sales.jsp");
-    }
-
-    private void showInventoryReport(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String storeTypeStr = getStringParameter(request, "storeType", "PHYSICAL");
-        StoreType storeType = StoreType.valueOf(storeTypeStr);
-
-        // Current stock levels
-        List<StockLevelReport> stockLevels = reportService.getCurrentStockLevels(storeType);
-        request.setAttribute("stockLevels", stockLevels);
-
-        // Low stock
-        int threshold = getIntParameter(request, "threshold", 10);
-        List<LowStockReport> lowStock = reportService.getLowStockReport(storeType, threshold);
-        request.setAttribute("lowStock", lowStock);
-
-        // Expiring soon
-        int days = getIntParameter(request, "days", 7);
-        List<ExpiringStockReport> expiring = reportService.getExpiringStockReport(days);
-        request.setAttribute("expiring", expiring);
-
-        // Expired
-        List<ExpiringStockReport> expired = reportService.getExpiredStockReport();
-        request.setAttribute("expired", expired);
-
-        request.setAttribute("storeType", storeType);
-        request.setAttribute("threshold", threshold);
-        request.setAttribute("days", days);
-
-        setActiveNav(request, "reports");
-        render(request, response, "reports/inventory.jsp");
     }
 
     private void showTopProductsReport(HttpServletRequest request, HttpServletResponse response)
