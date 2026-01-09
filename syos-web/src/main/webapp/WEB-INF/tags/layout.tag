@@ -150,6 +150,9 @@
                             <a href="${ctx}/store-stock" class="${activeNav == 'store-stock' ? 'nav-link-active' : 'nav-link'}">
                                 Store Stock
                             </a>
+                            <a href="${ctx}/inventory/reports" class="bg-green-600 text-white hover:bg-green-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                Reports
+                            </a>
                         </c:if>
                         <c:if test="${sessionScope.userRole == 'ADMIN'}">
                             <a href="${ctx}/customers" class="${activeNav == 'customers' ? 'nav-link-active' : 'nav-link'}">
