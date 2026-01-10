@@ -38,11 +38,9 @@
                                         <input type="hidden" id="storeType" value="PHYSICAL">
                                     </div>
                                     <div>
-                                        <label class="input-label">Transaction Type *</label>
-                                        <select id="transactionType" class="input-field" required>
-                                            <option value="CASH">Cash</option>
-                                            <option value="CREDIT">Credit/Card</option>
-                                        </select>
+                                        <label class="input-label">Payment Type</label>
+                                        <input type="text" class="input-field bg-gray-100" value="Cash" readonly>
+                                        <input type="hidden" id="transactionType" value="CASH">
                                     </div>
                                     <div>
                                         <label class="input-label">Cashier ID</label>
@@ -161,12 +159,6 @@
                         // ==================== Client-Side Cart State ====================
                         let cartItems = [];  // {productCode, productName, quantity, unitPrice, lineTotal}
                         let cartDiscount = 0;
-
-                        // Show/hide cash tendered based on transaction type
-                        document.getElementById('transactionType').addEventListener('change', function () {
-                            const cashDiv = document.getElementById('cashPaymentDiv');
-                            cashDiv.classList.toggle('hidden', this.value !== 'CASH');
-                        });
 
                         function quickAddProduct(code) {
                             document.getElementById('productCode').value = code;
