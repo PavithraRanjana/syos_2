@@ -96,6 +96,49 @@
                                     </div>
                                 </a>
                             </div>
+
+                            <!-- Product Code Info -->
+                            <div class="mt-6 pt-4 border-t border-gray-200">
+                                <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-syos-primary" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Product Code Format
+                                </h3>
+                                <div class="bg-blue-50 rounded-lg p-3 text-xs">
+                                    <code
+                                        class="font-mono text-sm bg-white px-2 py-1 rounded border block mb-2 text-center">
+                                        CAT-SUB-BR-SEQ
+                                    </code>
+                                    <div class="space-y-1.5 text-gray-600">
+                                        <div class="flex">
+                                            <span class="font-semibold text-blue-700 w-10">CAT</span>
+                                            <span>Category (GRO=Groceries, BEV=Beverages, DAI=Dairy, SNK=Snacks,
+                                                PER=Personal Care)</span>
+                                        </div>
+                                        <div class="flex">
+                                            <span class="font-semibold text-blue-700 w-10">SUB</span>
+                                            <span>Subcategory (RI=Rice, SD=Soda, MI=Milk)</span>
+                                        </div>
+                                        <div class="flex">
+                                            <span class="font-semibold text-blue-700 w-10">BR</span>
+                                            <span>Brand (CC=CocaCola, NE=Nestle, LO=Local)</span>
+                                        </div>
+                                        <div class="flex">
+                                            <span class="font-semibold text-blue-700 w-10">SEQ</span>
+                                            <span>Sequence number (001, 002...)</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 pt-2 border-t border-blue-200">
+                                        <p class="text-gray-500 mb-1">Example:</p>
+                                        <code
+                                            class="font-mono text-sm bg-white px-2 py-0.5 rounded">BEV-SD-CC-001</code>
+                                        <span class="text-gray-500">= Beverage, Soda, CocaCola #001</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Recent Transactions -->
