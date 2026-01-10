@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * Servlet for report views.
  */
-@WebServlet(urlPatterns = {"/reports", "/reports/*"})
+@WebServlet(urlPatterns = { "/reports", "/reports/*" })
 public class ReportViewServlet extends BaseViewServlet {
 
     private ReportService reportService;
@@ -45,6 +45,8 @@ public class ReportViewServlet extends BaseViewServlet {
                 showReorderLevelReport(request, response);
             } else if (pathInfo.equals("/batch-stock")) {
                 showBatchStockReport(request, response);
+            } else if (pathInfo.equals("/bills")) {
+                showBillReport(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -52,6 +54,24 @@ public class ReportViewServlet extends BaseViewServlet {
             setErrorMessage(request, "Error: " + e.getMessage());
             showReportsHome(request, response);
         }
+    }
+
+    private void showBillReport(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String dateStr = getStringParameter(request, "date", "");
+        String storeTypeStr = getStringParameter(request, "storeType", "PHYSICAL");
+
+        LocalDate date = dateStr.isEmpty() ? LocalDate.now() : LocalDate.parse(dateStr);
+        StoreType storeType = StoreType.valueOf(storeTypeStr);
+
+        BillReport billReport = reportService.getBillReport(date, storeType);
+
+        request.setAttribute("billReport", billReport);
+        request.setAttribute("selectedDate", date);
+        request.setAttribute("selectedStoreType", storeType);
+
+        setActiveNav(request, "reports");
+        render(request, response, "reports/bills.jsp");
     }
 
     private void showReportsHome(HttpServletRequest request, HttpServletResponse response)
@@ -85,7 +105,8 @@ public class ReportViewServlet extends BaseViewServlet {
         if (storeTypeFilter != null) {
             // Filtered by store type
             salesSummary = reportService.getSalesSummaryByStoreType(selectedDate, storeTypeFilter);
-            productSales = reportService.getTopSellingProductsByStoreType(selectedDate, selectedDate, 100, storeTypeFilter);
+            productSales = reportService.getTopSellingProductsByStoreType(selectedDate, selectedDate, 100,
+                    storeTypeFilter);
         } else {
             // All stores combined
             salesSummary = reportService.getSalesSummary(selectedDate);
@@ -145,8 +166,8 @@ public class ReportViewServlet extends BaseViewServlet {
         // Calculate totals
         int totalItems = reshelveItems.size();
         int totalQuantityToReshelve = reshelveItems.stream()
-            .mapToInt(ReshelveReport::quantityToReshelve)
-            .sum();
+                .mapToInt(ReshelveReport::quantityToReshelve)
+                .sum();
         request.setAttribute("totalItems", totalItems);
         request.setAttribute("totalQuantityToReshelve", totalQuantityToReshelve);
 
@@ -166,8 +187,8 @@ public class ReportViewServlet extends BaseViewServlet {
         // Calculate totals
         int totalItems = reorderItems.size();
         int totalQuantityToReorder = reorderItems.stream()
-            .mapToInt(ReorderLevelReport::quantityToReorder)
-            .sum();
+                .mapToInt(ReorderLevelReport::quantityToReorder)
+                .sum();
         request.setAttribute("totalItems", totalItems);
         request.setAttribute("totalQuantityToReorder", totalQuantityToReorder);
         request.setAttribute("threshold", threshold);

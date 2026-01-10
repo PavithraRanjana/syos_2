@@ -116,6 +116,61 @@ The previous session implemented:
 
 ---
 
+## 5. Session Update: REPORTS BUTTON AND BILL REPORT
+**Date: 2026-01-10**
+
+### A. Shop Page Reports Button Enhancement
+**Route:** `/syos/shop`
+
+**Changes:**
+1.  **Placement**: Moved the "Reports" button from the user menu (dropdown) to the top navigation bar, creating a dedicated entry point for Managers next to the "SYOS Shop" logo.
+2.  **Design**:
+    *   Initially applied a "glow effect" consistent with the Inventory Reports button.
+    *   **User Decision**: User requested to **remove** the glow effect for this specific button.
+    *   Final State: Standard green button (`bg-green-600`), no shadow.
+3.  **Files Modified**:
+    *   `src/main/webapp/WEB-INF/views/shop/index.jsp`:
+        *   Added a container `<div id="headerReportsBtn">` next to the logo.
+        *   Updated JS `updateUserMenu()` to inject the button into this container instead of the dropdown if the user role is `MANAGER`.
+
+### B. Feature: Daily Bill Report
+**Route:** `/syos/reports/bills`
+
+**Purpose**: A detailed transactional report showing every bill generated for a specific day, filtered by Store Type (Physical vs Online).
+
+**Implementation Details:**
+1.  **Concurrency (Multithreading)**: 
+    *   Implemented in `ReportServiceImpl.getBillReport`.
+    *   **Pattern**: Uses `Java Streams API` with `parallelStream()`.
+    *   **Thread Safety**: Leveraging internal `BaseRepository` connection handling where each task in the parallel stream retrieves a fresh JDBC connection, ensuring thread safety while fetching line items for multiple bills concurrently.
+
+2.  **Architecture**:
+    *   **Repository**: extended `BillRepository` to support finding by store type and date range.
+    *   **Service**: returns a `BillReport` record (DTO) containing summary stats and the list of hydrated Bill objects.
+    *   **View**: `reports/bills.jsp` renders the data using JSTL.
+
+3.  **UI Features**:
+    *   Tabbed interface for Physical/Online store switching.
+    *   Date Picker.
+    *   Meta-data display: Date, Time, Bill #, Customer Name, and detailed Line Items table.
+
+**Files Created/Modified**:
+*   `src/main/java/com/syos/service/impl/ReportServiceImpl.java` (Logic addition)
+*   `src/main/java/com/syos/web/servlet/view/ReportViewServlet.java` (Route addition)
+*   `src/main/webapp/WEB-INF/views/reports/bills.jsp` (New View)
+*   `src/main/webapp/WEB-INF/views/reports/index.jsp` (Added link)
+
+### C. Technical Audit
+*   **Architecture**: Verified compliance with Layered Monolith pattern.
+*   **SOLID**: Verified SRP in new Report classes.
+*   **Concurrency**: verified thread-safety of parallel DB access.
+
+### Deployment
+*   Successfully deployed to Tomcat.
+*   Verified accessible at `http://localhost:8080/syos/reports/bills`.
+
+---
+
 ## Current System State
 
 ### User Roles and Access:

@@ -31,7 +31,8 @@ public interface ReportService {
     /**
      * Gets top selling products for a date range filtered by store type.
      */
-    List<ProductSalesReport> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType);
+    List<ProductSalesReport> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit,
+            StoreType storeType);
 
     /**
      * Gets sales summary for a specific date.
@@ -77,7 +78,8 @@ public interface ReportService {
 
     /**
      * Gets items that need to be reshelved (stock below minimum threshold).
-     * This report shows products where current stock is below the configured minimum.
+     * This report shows products where current stock is below the configured
+     * minimum.
      */
     List<ReshelveReport> getReshelveReport(StoreType storeType);
 
@@ -97,108 +99,126 @@ public interface ReportService {
     /**
      * Gets dashboard summary for today.
      */
+    /**
+     * Gets dashboard summary for today.
+     */
     DashboardSummary getDashboardSummary();
+
+    /**
+     * Gets bill report for a specific date and store type, including all line
+     * items.
+     * Uses multithreading to fetch bill items concurrently.
+     */
+    BillReport getBillReport(LocalDate date, StoreType storeType);
 
     // ==================== Report DTOs ====================
 
     record DailySalesReport(
-        LocalDate date,
-        int billCount,
-        BigDecimal totalSales,
-        BigDecimal cashSales,
-        BigDecimal onlineSales
-    ) {}
+            LocalDate date,
+            int billCount,
+            BigDecimal totalSales,
+            BigDecimal cashSales,
+            BigDecimal onlineSales) {
+    }
 
     record StoreTypeSalesReport(
-        StoreType storeType,
-        int billCount,
-        BigDecimal totalSales
-    ) {}
+            StoreType storeType,
+            int billCount,
+            BigDecimal totalSales) {
+    }
 
     record ProductSalesReport(
-        String productCode,
-        String productName,
-        int totalQuantitySold,
-        BigDecimal totalRevenue
-    ) {}
+            String productCode,
+            String productName,
+            int totalQuantitySold,
+            BigDecimal totalRevenue) {
+    }
 
     record SalesSummary(
-        LocalDate startDate,
-        LocalDate endDate,
-        int totalBills,
-        BigDecimal totalSales,
-        BigDecimal averageBillValue,
-        int totalItemsSold
-    ) {}
+            LocalDate startDate,
+            LocalDate endDate,
+            int totalBills,
+            BigDecimal totalSales,
+            BigDecimal averageBillValue,
+            int totalItemsSold) {
+    }
 
     record StockLevelReport(
-        String productCode,
-        String productName,
-        int currentStock,
-        int batchCount,
-        LocalDate earliestExpiry
-    ) {}
+            String productCode,
+            String productName,
+            int currentStock,
+            int batchCount,
+            LocalDate earliestExpiry) {
+    }
 
     record LowStockReport(
-        String productCode,
-        String productName,
-        int currentStock,
-        int recommendedRestock
-    ) {}
+            String productCode,
+            String productName,
+            int currentStock,
+            int recommendedRestock) {
+    }
 
     record ExpiringStockReport(
-        String productCode,
-        String productName,
-        Integer batchId,
-        int quantity,
-        LocalDate expiryDate,
-        int daysUntilExpiry
-    ) {}
+            String productCode,
+            String productName,
+            Integer batchId,
+            int quantity,
+            LocalDate expiryDate,
+            int daysUntilExpiry) {
+    }
 
     record RestockRecommendation(
-        String productCode,
-        String productName,
-        int currentStock,
-        int averageDailySales,
-        int daysOfStockRemaining,
-        int recommendedRestock
-    ) {}
+            String productCode,
+            String productName,
+            int currentStock,
+            int averageDailySales,
+            int daysOfStockRemaining,
+            int recommendedRestock) {
+    }
 
     record ReshelveReport(
-        String productCode,
-        String productName,
-        int currentStock,
-        int minimumStock,
-        int quantityToReshelve
-    ) {}
+            String productCode,
+            String productName,
+            int currentStock,
+            int minimumStock,
+            int quantityToReshelve) {
+    }
 
     record ReorderLevelReport(
-        String productCode,
-        String productName,
-        int totalRemainingQuantity,
-        int reorderThreshold,
-        int quantityToReorder
-    ) {}
+            String productCode,
+            String productName,
+            int totalRemainingQuantity,
+            int reorderThreshold,
+            int quantityToReorder) {
+    }
 
     record BatchStockReport(
-        String productCode,
-        String productName,
-        int batchNumber,
-        LocalDate purchaseDate,
-        LocalDate expiryDate,
-        int originalQuantity,
-        int remainingInMain,
-        int quantityInPhysical,
-        int quantityInOnline
-    ) {}
+            String productCode,
+            String productName,
+            int batchNumber,
+            LocalDate purchaseDate,
+            LocalDate expiryDate,
+            int originalQuantity,
+            int remainingInMain,
+            int quantityInPhysical,
+            int quantityInOnline) {
+    }
 
     record DashboardSummary(
-        BigDecimal todaySales,
-        int todayBillCount,
-        int lowStockProductCount,
-        int expiringProductCount,
-        BigDecimal weekSales,
-        BigDecimal monthSales,
-        List<ProductSalesReport> topProducts
-    ) {}
+            BigDecimal todaySales,
+            int todayBillCount,
+            int lowStockProductCount,
+            int expiringProductCount,
+            BigDecimal weekSales,
+            BigDecimal monthSales,
+            List<ProductSalesReport> topProducts) {
+    }
+
+    record BillReport(
+            LocalDate date,
+            StoreType storeType,
+            int totalBills,
+            BigDecimal totalRevenue,
+            List<com.syos.domain.models.Bill> bills) {
+    }
 }

@@ -1,6 +1,8 @@
 package com.syos.service.impl;
 
 import com.syos.domain.enums.StoreType;
+import com.syos.domain.models.Bill;
+import com.syos.domain.models.BillItem;
 import com.syos.domain.models.MainInventory;
 import com.syos.domain.models.OnlineStoreInventory;
 import com.syos.domain.models.PhysicalStoreInventory;
@@ -63,14 +65,13 @@ public class ReportServiceImpl implements ReportService {
         List<BillRepository.DailySalesSummary> summaries = billRepository.getDailySalesSummary(startDate, endDate);
 
         return summaries.stream()
-            .map(s -> new DailySalesReport(
-                s.date(),
-                s.billCount(),
-                s.totalAmount(),
-                s.cashAmount(),
-                s.onlineAmount()
-            ))
-            .toList();
+                .map(s -> new DailySalesReport(
+                        s.date(),
+                        s.billCount(),
+                        s.totalAmount(),
+                        s.cashAmount(),
+                        s.onlineAmount()))
+                .toList();
     }
 
     @Override
@@ -80,46 +81,45 @@ public class ReportServiceImpl implements ReportService {
         List<BillRepository.StoreTypeSalesSummary> summaries = billRepository.getSalesByStoreType(startDate, endDate);
 
         return summaries.stream()
-            .map(s -> new StoreTypeSalesReport(
-                s.storeType(),
-                s.billCount(),
-                s.totalAmount()
-            ))
-            .toList();
+                .map(s -> new StoreTypeSalesReport(
+                        s.storeType(),
+                        s.billCount(),
+                        s.totalAmount()))
+                .toList();
     }
 
     @Override
     public List<ProductSalesReport> getTopSellingProducts(LocalDate startDate, LocalDate endDate, int limit) {
         logger.debug("Generating top selling products report: {} to {}, limit {}", startDate, endDate, limit);
 
-        List<BillItemRepository.ProductSalesSummary> summaries =
-            billItemRepository.getTopSellingProducts(startDate, endDate, limit);
+        List<BillItemRepository.ProductSalesSummary> summaries = billItemRepository.getTopSellingProducts(startDate,
+                endDate, limit);
 
         return summaries.stream()
-            .map(s -> new ProductSalesReport(
-                s.productCode(),
-                s.productName(),
-                s.totalQuantity(),
-                s.totalRevenue()
-            ))
-            .toList();
+                .map(s -> new ProductSalesReport(
+                        s.productCode(),
+                        s.productName(),
+                        s.totalQuantity(),
+                        s.totalRevenue()))
+                .toList();
     }
 
     @Override
-    public List<ProductSalesReport> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType) {
-        logger.debug("Generating top selling products report for {}: {} to {}, limit {}", storeType, startDate, endDate, limit);
+    public List<ProductSalesReport> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit,
+            StoreType storeType) {
+        logger.debug("Generating top selling products report for {}: {} to {}, limit {}", storeType, startDate, endDate,
+                limit);
 
-        List<BillItemRepository.ProductSalesSummary> summaries =
-            billItemRepository.getTopSellingProductsByStoreType(startDate, endDate, limit, storeType);
+        List<BillItemRepository.ProductSalesSummary> summaries = billItemRepository
+                .getTopSellingProductsByStoreType(startDate, endDate, limit, storeType);
 
         return summaries.stream()
-            .map(s -> new ProductSalesReport(
-                s.productCode(),
-                s.productName(),
-                s.totalQuantity(),
-                s.totalRevenue()
-            ))
-            .toList();
+                .map(s -> new ProductSalesReport(
+                        s.productCode(),
+                        s.productName(),
+                        s.totalQuantity(),
+                        s.totalRevenue()))
+                .toList();
     }
 
     @Override
@@ -136,32 +136,31 @@ public class ReportServiceImpl implements ReportService {
 
         // Find the summary for the requested store type
         BillRepository.StoreTypeSalesSummary storeSummary = storeTypeSummaries.stream()
-            .filter(s -> s.storeType() == storeType)
-            .findFirst()
-            .orElse(new BillRepository.StoreTypeSalesSummary(storeType, 0, BigDecimal.ZERO));
+                .filter(s -> s.storeType() == storeType)
+                .findFirst()
+                .orElse(new BillRepository.StoreTypeSalesSummary(storeType, 0, BigDecimal.ZERO));
 
         int totalBills = storeSummary.billCount();
         BigDecimal totalSales = storeSummary.totalAmount();
 
-        BigDecimal averageBillValue = totalBills > 0 ?
-            totalSales.divide(BigDecimal.valueOf(totalBills), 2, RoundingMode.HALF_UP) :
-            BigDecimal.ZERO;
+        BigDecimal averageBillValue = totalBills > 0
+                ? totalSales.divide(BigDecimal.valueOf(totalBills), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         // Get total items sold for this store type
-        List<BillItemRepository.ProductSalesSummary> productSummaries =
-            billItemRepository.getProductSalesSummaryByStoreType(date, date, storeType);
+        List<BillItemRepository.ProductSalesSummary> productSummaries = billItemRepository
+                .getProductSalesSummaryByStoreType(date, date, storeType);
         int totalItemsSold = productSummaries.stream()
-            .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
-            .sum();
+                .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
+                .sum();
 
         return new SalesSummary(
-            date,
-            date,
-            totalBills,
-            totalSales,
-            averageBillValue,
-            totalItemsSold
-        );
+                date,
+                date,
+                totalBills,
+                totalSales,
+                averageBillValue,
+                totalItemsSold);
     }
 
     @Override
@@ -176,25 +175,24 @@ public class ReportServiceImpl implements ReportService {
             totalBills += summary.billCount();
         }
 
-        BigDecimal averageBillValue = totalBills > 0 ?
-            totalSales.divide(BigDecimal.valueOf(totalBills), 2, RoundingMode.HALF_UP) :
-            BigDecimal.ZERO;
+        BigDecimal averageBillValue = totalBills > 0
+                ? totalSales.divide(BigDecimal.valueOf(totalBills), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         // Get total items sold
-        List<BillItemRepository.ProductSalesSummary> productSummaries =
-            billItemRepository.getProductSalesSummary(startDate, endDate);
+        List<BillItemRepository.ProductSalesSummary> productSummaries = billItemRepository
+                .getProductSalesSummary(startDate, endDate);
         int totalItemsSold = productSummaries.stream()
-            .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
-            .sum();
+                .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
+                .sum();
 
         return new SalesSummary(
-            startDate,
-            endDate,
-            totalBills,
-            totalSales,
-            averageBillValue,
-            totalItemsSold
-        );
+                startDate,
+                endDate,
+                totalBills,
+                totalSales,
+                averageBillValue,
+                totalItemsSold);
     }
 
     // ==================== Inventory Reports ====================
@@ -206,48 +204,46 @@ public class ReportServiceImpl implements ReportService {
         List<StockLevelReport> reports = new ArrayList<>();
 
         if (storeType == StoreType.PHYSICAL) {
-            List<PhysicalStoreInventoryRepository.ProductStockSummary> summaries =
-                physicalStoreRepository.getStockSummary();
+            List<PhysicalStoreInventoryRepository.ProductStockSummary> summaries = physicalStoreRepository
+                    .getStockSummary();
 
             for (PhysicalStoreInventoryRepository.ProductStockSummary summary : summaries) {
                 // Get earliest expiry for this product
-                List<PhysicalStoreInventory> batches =
-                    physicalStoreRepository.findAvailableByProductCode(summary.productCode());
+                List<PhysicalStoreInventory> batches = physicalStoreRepository
+                        .findAvailableByProductCode(summary.productCode());
                 LocalDate earliestExpiry = batches.stream()
-                    .filter(b -> b.getExpiryDate() != null)
-                    .map(PhysicalStoreInventory::getExpiryDate)
-                    .min(LocalDate::compareTo)
-                    .orElse(null);
+                        .filter(b -> b.getExpiryDate() != null)
+                        .map(PhysicalStoreInventory::getExpiryDate)
+                        .min(LocalDate::compareTo)
+                        .orElse(null);
 
                 reports.add(new StockLevelReport(
-                    summary.productCode(),
-                    summary.productName(),
-                    summary.totalQuantity(),
-                    summary.batchCount(),
-                    earliestExpiry
-                ));
+                        summary.productCode(),
+                        summary.productName(),
+                        summary.totalQuantity(),
+                        summary.batchCount(),
+                        earliestExpiry));
             }
         } else {
-            List<OnlineStoreInventoryRepository.ProductStockSummary> summaries =
-                onlineStoreRepository.getStockSummary();
+            List<OnlineStoreInventoryRepository.ProductStockSummary> summaries = onlineStoreRepository
+                    .getStockSummary();
 
             for (OnlineStoreInventoryRepository.ProductStockSummary summary : summaries) {
                 // Get earliest expiry for this product
-                List<OnlineStoreInventory> batches =
-                    onlineStoreRepository.findAvailableByProductCode(summary.productCode());
+                List<OnlineStoreInventory> batches = onlineStoreRepository
+                        .findAvailableByProductCode(summary.productCode());
                 LocalDate earliestExpiry = batches.stream()
-                    .filter(b -> b.getExpiryDate() != null)
-                    .map(OnlineStoreInventory::getExpiryDate)
-                    .min(LocalDate::compareTo)
-                    .orElse(null);
+                        .filter(b -> b.getExpiryDate() != null)
+                        .map(OnlineStoreInventory::getExpiryDate)
+                        .min(LocalDate::compareTo)
+                        .orElse(null);
 
                 reports.add(new StockLevelReport(
-                    summary.productCode(),
-                    summary.productName(),
-                    summary.totalQuantity(),
-                    summary.batchCount(),
-                    earliestExpiry
-                ));
+                        summary.productCode(),
+                        summary.productName(),
+                        summary.totalQuantity(),
+                        summary.batchCount(),
+                        earliestExpiry));
             }
         }
 
@@ -264,21 +260,19 @@ public class ReportServiceImpl implements ReportService {
             List<PhysicalStoreInventory> lowStock = physicalStoreRepository.findLowStock(threshold);
             for (PhysicalStoreInventory inv : lowStock) {
                 reports.add(new LowStockReport(
-                    inv.getProductCodeString(),
-                    inv.getProductName(),
-                    inv.getQuantityOnShelf(),
-                    calculateRecommendedRestock(inv.getProductCodeString(), threshold)
-                ));
+                        inv.getProductCodeString(),
+                        inv.getProductName(),
+                        inv.getQuantityOnShelf(),
+                        calculateRecommendedRestock(inv.getProductCodeString(), threshold)));
             }
         } else {
             List<OnlineStoreInventory> lowStock = onlineStoreRepository.findLowStock(threshold);
             for (OnlineStoreInventory inv : lowStock) {
                 reports.add(new LowStockReport(
-                    inv.getProductCodeString(),
-                    inv.getProductName(),
-                    inv.getQuantityAvailable(),
-                    calculateRecommendedRestock(inv.getProductCodeString(), threshold)
-                ));
+                        inv.getProductCodeString(),
+                        inv.getProductName(),
+                        inv.getQuantityAvailable(),
+                        calculateRecommendedRestock(inv.getProductCodeString(), threshold)));
             }
         }
 
@@ -293,15 +287,14 @@ public class ReportServiceImpl implements ReportService {
         LocalDate today = LocalDate.now();
 
         return expiringBatches.stream()
-            .map(batch -> new ExpiringStockReport(
-                batch.getProductCodeString(),
-                batch.getProductName(),
-                batch.getMainInventoryId(),
-                batch.getRemainingQuantity(),
-                batch.getExpiryDate(),
-                (int) ChronoUnit.DAYS.between(today, batch.getExpiryDate())
-            ))
-            .toList();
+                .map(batch -> new ExpiringStockReport(
+                        batch.getProductCodeString(),
+                        batch.getProductName(),
+                        batch.getMainInventoryId(),
+                        batch.getRemainingQuantity(),
+                        batch.getExpiryDate(),
+                        (int) ChronoUnit.DAYS.between(today, batch.getExpiryDate())))
+                .toList();
     }
 
     @Override
@@ -312,15 +305,14 @@ public class ReportServiceImpl implements ReportService {
         LocalDate today = LocalDate.now();
 
         return expiredBatches.stream()
-            .map(batch -> new ExpiringStockReport(
-                batch.getProductCodeString(),
-                batch.getProductName(),
-                batch.getMainInventoryId(),
-                batch.getRemainingQuantity(),
-                batch.getExpiryDate(),
-                (int) ChronoUnit.DAYS.between(today, batch.getExpiryDate())
-            ))
-            .toList();
+                .map(batch -> new ExpiringStockReport(
+                        batch.getProductCodeString(),
+                        batch.getProductName(),
+                        batch.getMainInventoryId(),
+                        batch.getRemainingQuantity(),
+                        batch.getExpiryDate(),
+                        (int) ChronoUnit.DAYS.between(today, batch.getExpiryDate())))
+                .toList();
     }
 
     @Override
@@ -332,8 +324,8 @@ public class ReportServiceImpl implements ReportService {
         LocalDate startDate = endDate.minusDays(daysOfSalesData);
 
         // Get sales data
-        List<BillItemRepository.ProductSalesSummary> salesData =
-            billItemRepository.getProductSalesSummary(startDate, endDate);
+        List<BillItemRepository.ProductSalesSummary> salesData = billItemRepository.getProductSalesSummary(startDate,
+                endDate);
 
         // Get current stock levels
         List<StockLevelReport> stockLevels = getCurrentStockLevels(storeType);
@@ -341,13 +333,12 @@ public class ReportServiceImpl implements ReportService {
         for (StockLevelReport stockLevel : stockLevels) {
             // Find matching sales data
             int totalSold = salesData.stream()
-                .filter(s -> s.productCode().equals(stockLevel.productCode()))
-                .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
-                .sum();
+                    .filter(s -> s.productCode().equals(stockLevel.productCode()))
+                    .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
+                    .sum();
 
             int avgDailySales = totalSold / Math.max(daysOfSalesData, 1);
-            int daysOfStock = avgDailySales > 0 ?
-                stockLevel.currentStock() / avgDailySales : Integer.MAX_VALUE;
+            int daysOfStock = avgDailySales > 0 ? stockLevel.currentStock() / avgDailySales : Integer.MAX_VALUE;
 
             // Recommend restock if less than safety days of stock
             if (daysOfStock < RESTOCK_SAFETY_DAYS) {
@@ -355,13 +346,12 @@ public class ReportServiceImpl implements ReportService {
                 recommendedRestock = Math.max(recommendedRestock, 0);
 
                 recommendations.add(new RestockRecommendation(
-                    stockLevel.productCode(),
-                    stockLevel.productName(),
-                    stockLevel.currentStock(),
-                    avgDailySales,
-                    daysOfStock,
-                    recommendedRestock
-                ));
+                        stockLevel.productCode(),
+                        stockLevel.productName(),
+                        stockLevel.currentStock(),
+                        avgDailySales,
+                        daysOfStock,
+                        recommendedRestock));
             }
         }
 
@@ -379,13 +369,14 @@ public class ReportServiceImpl implements ReportService {
 
         if (storeType == StoreType.PHYSICAL) {
             // Get stock summary for physical store
-            List<PhysicalStoreInventoryRepository.ProductStockSummary> stockSummaries =
-                physicalStoreRepository.getStockSummary();
+            List<PhysicalStoreInventoryRepository.ProductStockSummary> stockSummaries = physicalStoreRepository
+                    .getStockSummary();
 
             for (PhysicalStoreInventoryRepository.ProductStockSummary summary : stockSummaries) {
                 // Get the product to find its minimum stock level
                 Product product = productRepository.findByProductCode(summary.productCode()).orElse(null);
-                if (product == null) continue;
+                if (product == null)
+                    continue;
 
                 int minStock = product.getMinPhysicalStock();
                 int currentStock = summary.totalQuantity();
@@ -393,12 +384,11 @@ public class ReportServiceImpl implements ReportService {
                 if (currentStock < minStock) {
                     int quantityToReshelve = minStock - currentStock;
                     reports.add(new ReshelveReport(
-                        summary.productCode(),
-                        summary.productName(),
-                        currentStock,
-                        minStock,
-                        quantityToReshelve
-                    ));
+                            summary.productCode(),
+                            summary.productName(),
+                            currentStock,
+                            minStock,
+                            quantityToReshelve));
                 }
             }
 
@@ -407,27 +397,27 @@ public class ReportServiceImpl implements ReportService {
             for (Product product : allProducts) {
                 if (product.getMinPhysicalStock() > 0) {
                     boolean hasStock = stockSummaries.stream()
-                        .anyMatch(s -> s.productCode().equals(product.getProductCodeString()));
+                            .anyMatch(s -> s.productCode().equals(product.getProductCodeString()));
                     if (!hasStock) {
                         reports.add(new ReshelveReport(
-                            product.getProductCodeString(),
-                            product.getProductName(),
-                            0,
-                            product.getMinPhysicalStock(),
-                            product.getMinPhysicalStock()
-                        ));
+                                product.getProductCodeString(),
+                                product.getProductName(),
+                                0,
+                                product.getMinPhysicalStock(),
+                                product.getMinPhysicalStock()));
                     }
                 }
             }
         } else {
             // Get stock summary for online store
-            List<OnlineStoreInventoryRepository.ProductStockSummary> stockSummaries =
-                onlineStoreRepository.getStockSummary();
+            List<OnlineStoreInventoryRepository.ProductStockSummary> stockSummaries = onlineStoreRepository
+                    .getStockSummary();
 
             for (OnlineStoreInventoryRepository.ProductStockSummary summary : stockSummaries) {
                 // Get the product to find its minimum stock level
                 Product product = productRepository.findByProductCode(summary.productCode()).orElse(null);
-                if (product == null) continue;
+                if (product == null)
+                    continue;
 
                 int minStock = product.getMinOnlineStock();
                 int currentStock = summary.totalQuantity();
@@ -435,12 +425,11 @@ public class ReportServiceImpl implements ReportService {
                 if (currentStock < minStock) {
                     int quantityToReshelve = minStock - currentStock;
                     reports.add(new ReshelveReport(
-                        summary.productCode(),
-                        summary.productName(),
-                        currentStock,
-                        minStock,
-                        quantityToReshelve
-                    ));
+                            summary.productCode(),
+                            summary.productName(),
+                            currentStock,
+                            minStock,
+                            quantityToReshelve));
                 }
             }
 
@@ -449,15 +438,14 @@ public class ReportServiceImpl implements ReportService {
             for (Product product : allProducts) {
                 if (product.getMinOnlineStock() > 0) {
                     boolean hasStock = stockSummaries.stream()
-                        .anyMatch(s -> s.productCode().equals(product.getProductCodeString()));
+                            .anyMatch(s -> s.productCode().equals(product.getProductCodeString()));
                     if (!hasStock) {
                         reports.add(new ReshelveReport(
-                            product.getProductCodeString(),
-                            product.getProductName(),
-                            0,
-                            product.getMinOnlineStock(),
-                            product.getMinOnlineStock()
-                        ));
+                                product.getProductCodeString(),
+                                product.getProductName(),
+                                0,
+                                product.getMinOnlineStock(),
+                                product.getMinOnlineStock()));
                     }
                 }
             }
@@ -483,18 +471,17 @@ public class ReportServiceImpl implements ReportService {
             List<MainInventory> batches = mainInventoryRepository.findByProductCode(product.getProductCodeString());
 
             int totalRemaining = batches.stream()
-                .mapToInt(MainInventory::getRemainingQuantity)
-                .sum();
+                    .mapToInt(MainInventory::getRemainingQuantity)
+                    .sum();
 
             if (totalRemaining < threshold) {
                 int quantityToReorder = threshold - totalRemaining;
                 reports.add(new ReorderLevelReport(
-                    product.getProductCodeString(),
-                    product.getProductName(),
-                    totalRemaining,
-                    threshold,
-                    quantityToReorder
-                ));
+                        product.getProductCodeString(),
+                        product.getProductName(),
+                        totalRemaining,
+                        threshold,
+                        quantityToReorder));
             }
         }
 
@@ -519,31 +506,31 @@ public class ReportServiceImpl implements ReportService {
 
             // Get quantity in physical store for this batch
             int physicalQty = physicalStoreRepository.findByProductCodeAndBatchId(productCode, batchId)
-                .map(inv -> inv.getQuantityOnShelf())
-                .orElse(0);
+                    .map(inv -> inv.getQuantityOnShelf())
+                    .orElse(0);
 
             // Get quantity in online store for this batch
             int onlineQty = onlineStoreRepository.findByProductCodeAndBatchId(productCode, batchId)
-                .map(inv -> inv.getQuantityAvailable())
-                .orElse(0);
+                    .map(inv -> inv.getQuantityAvailable())
+                    .orElse(0);
 
             reports.add(new BatchStockReport(
-                productCode,
-                batch.getProductName(),
-                batchId,
-                batch.getPurchaseDate(),
-                batch.getExpiryDate(),
-                batch.getQuantityReceived(),
-                batch.getRemainingQuantity(),
-                physicalQty,
-                onlineQty
-            ));
+                    productCode,
+                    batch.getProductName(),
+                    batchId,
+                    batch.getPurchaseDate(),
+                    batch.getExpiryDate(),
+                    batch.getQuantityReceived(),
+                    batch.getRemainingQuantity(),
+                    physicalQty,
+                    onlineQty));
         }
 
         // Sort by product code, then by batch number
         reports.sort((a, b) -> {
             int codeCompare = a.productCode().compareTo(b.productCode());
-            if (codeCompare != 0) return codeCompare;
+            if (codeCompare != 0)
+                return codeCompare;
             return Integer.compare(a.batchNumber(), b.batchNumber());
         });
 
@@ -551,6 +538,30 @@ public class ReportServiceImpl implements ReportService {
     }
 
     // ==================== Dashboard Reports ====================
+
+    @Override
+    public BillReport getBillReport(LocalDate date, StoreType storeType) {
+        // Fetch all bills for the day and store type
+        List<Bill> bills = billRepository.findByStoreTypeAndDateRange(storeType, date, date);
+
+        // Concurrently fetch items for each bill
+        bills.parallelStream().forEach(bill -> {
+            try {
+                List<BillItem> items = billItemRepository.findByBillId(bill.getBillId());
+                bill.setItems(items);
+            } catch (Exception e) {
+                logger.error("Failed to fetch items for bill " + bill.getBillId(), e);
+            }
+        });
+
+        // Calculate totals
+        int totalBills = bills.size();
+        BigDecimal totalRevenue = bills.stream()
+                .map(bill -> bill.getTotalAmount().getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new BillReport(date, storeType, totalBills, totalRevenue, bills);
+    }
 
     @Override
     public DashboardSummary getDashboardSummary() {
@@ -575,14 +586,13 @@ public class ReportServiceImpl implements ReportService {
         List<ProductSalesReport> topProducts = getTopSellingProducts(weekAgo, today, 5);
 
         return new DashboardSummary(
-            todaySales,
-            todayBillCount,
-            lowStockCount,
-            expiringCount,
-            weekSales,
-            monthSales,
-            topProducts
-        );
+                todaySales,
+                todayBillCount,
+                lowStockCount,
+                expiringCount,
+                weekSales,
+                monthSales,
+                topProducts);
     }
 
     // ==================== Helper Methods ====================
