@@ -39,95 +39,95 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
 
     private BillItem insert(BillItem item) {
         String sql = """
-            INSERT INTO bill_item (bill_id, product_code, main_inventory_id, quantity, unit_price, line_total)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """;
+                INSERT INTO bill_item (bill_id, product_code, product_name, main_inventory_id, quantity, unit_price, line_total)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """;
 
         Integer id = executeInsertAndGetId(sql,
-            item.getBillId(),
-            item.getProductCodeString(),
-            item.getMainInventoryId(),
-            item.getQuantity(),
-            item.getUnitPrice().getAmount(),
-            item.getLineTotal().getAmount()
-        );
+                item.getBillId(),
+                item.getProductCodeString(),
+                item.getProductName(),
+                item.getMainInventoryId(),
+                item.getQuantity(),
+                item.getUnitPrice().getAmount(),
+                item.getLineTotal().getAmount());
         item.setBillItemId(id);
         return item;
     }
 
     private BillItem update(BillItem item) {
         String sql = """
-            UPDATE bill_item SET quantity = ?, unit_price = ?, line_total = ?
-            WHERE bill_item_id = ?
-            """;
+                UPDATE bill_item SET quantity = ?, unit_price = ?, line_total = ?
+                WHERE bill_item_id = ?
+                """;
 
         executeUpdate(sql,
-            item.getQuantity(),
-            item.getUnitPrice().getAmount(),
-            item.getLineTotal().getAmount(),
-            item.getBillItemId()
-        );
+                item.getQuantity(),
+                item.getUnitPrice().getAmount(),
+                item.getLineTotal().getAmount(),
+                item.getBillItemId());
         return item;
     }
 
     @Override
     public Optional<BillItem> findById(Integer id) {
         String sql = """
-            SELECT bi.*, p.product_name
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            WHERE bi.bill_item_id = ?
-            """;
+                SELECT bi.*, p.product_name
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                WHERE bi.bill_item_id = ?
+                """;
         return executeQuery(sql, rs -> mapToOptional(rs, this::mapRow), id);
     }
 
     @Override
     public List<BillItem> findByBillId(Integer billId) {
         String sql = """
-            SELECT bi.*, p.product_name
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            WHERE bi.bill_id = ?
-            ORDER BY bi.bill_item_id
-            """;
+                SELECT bi.*, p.product_name
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                WHERE bi.bill_id = ?
+                ORDER BY bi.bill_item_id
+                """;
         return executeQuery(sql, rs -> mapToList(rs, this::mapRow), billId);
     }
 
     @Override
     public List<BillItem> findByProductCode(String productCode) {
         String sql = """
-            SELECT bi.*, p.product_name
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            WHERE bi.product_code = ?
-            ORDER BY bi.created_at DESC
-            """;
+                SELECT bi.*, p.product_name
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                WHERE bi.product_code = ?
+                ORDER BY bi.created_at DESC
+                """;
         return executeQuery(sql, rs -> mapToList(rs, this::mapRow), productCode);
     }
 
     @Override
     public List<BillItem> findByProductCodeAndDateRange(String productCode, LocalDate startDate, LocalDate endDate) {
         String sql = """
-            SELECT bi.*, p.product_name
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE bi.product_code = ? AND DATE(b.bill_date) BETWEEN ? AND ?
-            ORDER BY b.bill_date DESC
-            """;
+                SELECT bi.*, p.product_name
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE bi.product_code = ? AND DATE(b.bill_date) BETWEEN ? AND ?
+                ORDER BY b.bill_date DESC
+                """;
         return executeQuery(sql, rs -> mapToList(rs, this::mapRow), productCode, startDate, endDate);
     }
 
     @Override
     public int getTotalQuantitySoldForDate(String productCode, LocalDate date) {
         String sql = """
-            SELECT COALESCE(SUM(bi.quantity), 0)
-            FROM bill_item bi
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE bi.product_code = ? AND DATE(b.bill_date) = ?
-            """;
+                SELECT COALESCE(SUM(bi.quantity), 0)
+                FROM bill_item bi
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE bi.product_code = ? AND DATE(b.bill_date) = ?
+                """;
         return executeQuery(sql, rs -> {
-            if (rs.next()) return rs.getInt(1);
+            if (rs.next())
+                return rs.getInt(1);
             return 0;
         }, productCode, date);
     }
@@ -135,13 +135,14 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
     @Override
     public int getTotalQuantitySoldForDateRange(String productCode, LocalDate startDate, LocalDate endDate) {
         String sql = """
-            SELECT COALESCE(SUM(bi.quantity), 0)
-            FROM bill_item bi
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE bi.product_code = ? AND DATE(b.bill_date) BETWEEN ? AND ?
-            """;
+                SELECT COALESCE(SUM(bi.quantity), 0)
+                FROM bill_item bi
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE bi.product_code = ? AND DATE(b.bill_date) BETWEEN ? AND ?
+                """;
         return executeQuery(sql, rs -> {
-            if (rs.next()) return rs.getInt(1);
+            if (rs.next())
+                return rs.getInt(1);
             return 0;
         }, productCode, startDate, endDate);
     }
@@ -149,13 +150,14 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
     @Override
     public BigDecimal getTotalRevenueForProduct(String productCode, LocalDate startDate, LocalDate endDate) {
         String sql = """
-            SELECT COALESCE(SUM(bi.line_total), 0)
-            FROM bill_item bi
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE bi.product_code = ? AND DATE(b.bill_date) BETWEEN ? AND ?
-            """;
+                SELECT COALESCE(SUM(bi.line_total), 0)
+                FROM bill_item bi
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE bi.product_code = ? AND DATE(b.bill_date) BETWEEN ? AND ?
+                """;
         return executeQuery(sql, rs -> {
-            if (rs.next()) return rs.getBigDecimal(1);
+            if (rs.next())
+                return rs.getBigDecimal(1);
             return BigDecimal.ZERO;
         }, productCode, startDate, endDate);
     }
@@ -163,56 +165,55 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
     @Override
     public List<ProductSalesSummary> getTopSellingProducts(LocalDate startDate, LocalDate endDate, int limit) {
         String sql = """
-            SELECT bi.product_code, p.product_name,
-                   SUM(bi.quantity) as total_quantity,
-                   SUM(bi.line_total) as total_revenue
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE DATE(b.bill_date) BETWEEN ? AND ?
-            GROUP BY bi.product_code, p.product_name
-            ORDER BY total_quantity DESC
-            LIMIT ?
-            """;
+                SELECT bi.product_code, p.product_name,
+                       SUM(bi.quantity) as total_quantity,
+                       SUM(bi.line_total) as total_revenue
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE DATE(b.bill_date) BETWEEN ? AND ?
+                GROUP BY bi.product_code, p.product_name
+                ORDER BY total_quantity DESC
+                LIMIT ?
+                """;
 
         return executeQuery(sql, rs -> {
             List<ProductSalesSummary> results = new ArrayList<>();
             while (rs.next()) {
                 results.add(new ProductSalesSummary(
-                    rs.getString("product_code"),
-                    rs.getString("product_name"),
-                    rs.getInt("total_quantity"),
-                    rs.getBigDecimal("total_revenue")
-                ));
+                        rs.getString("product_code"),
+                        rs.getString("product_name"),
+                        rs.getInt("total_quantity"),
+                        rs.getBigDecimal("total_revenue")));
             }
             return results;
         }, startDate, endDate, limit);
     }
 
     @Override
-    public List<ProductSalesSummary> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType) {
+    public List<ProductSalesSummary> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit,
+            StoreType storeType) {
         String sql = """
-            SELECT bi.product_code, p.product_name,
-                   SUM(bi.quantity) as total_quantity,
-                   SUM(bi.line_total) as total_revenue
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE DATE(b.bill_date) BETWEEN ? AND ? AND b.store_type = ?
-            GROUP BY bi.product_code, p.product_name
-            ORDER BY total_quantity DESC
-            LIMIT ?
-            """;
+                SELECT bi.product_code, p.product_name,
+                       SUM(bi.quantity) as total_quantity,
+                       SUM(bi.line_total) as total_revenue
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE DATE(b.bill_date) BETWEEN ? AND ? AND b.store_type = ?
+                GROUP BY bi.product_code, p.product_name
+                ORDER BY total_quantity DESC
+                LIMIT ?
+                """;
 
         return executeQuery(sql, rs -> {
             List<ProductSalesSummary> results = new ArrayList<>();
             while (rs.next()) {
                 results.add(new ProductSalesSummary(
-                    rs.getString("product_code"),
-                    rs.getString("product_name"),
-                    rs.getInt("total_quantity"),
-                    rs.getBigDecimal("total_revenue")
-                ));
+                        rs.getString("product_code"),
+                        rs.getString("product_name"),
+                        rs.getInt("total_quantity"),
+                        rs.getBigDecimal("total_revenue")));
             }
             return results;
         }, startDate, endDate, storeType.name(), limit);
@@ -221,54 +222,53 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
     @Override
     public List<ProductSalesSummary> getProductSalesSummary(LocalDate startDate, LocalDate endDate) {
         String sql = """
-            SELECT bi.product_code, p.product_name,
-                   SUM(bi.quantity) as total_quantity,
-                   SUM(bi.line_total) as total_revenue
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE DATE(b.bill_date) BETWEEN ? AND ?
-            GROUP BY bi.product_code, p.product_name
-            ORDER BY p.product_name
-            """;
+                SELECT bi.product_code, p.product_name,
+                       SUM(bi.quantity) as total_quantity,
+                       SUM(bi.line_total) as total_revenue
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE DATE(b.bill_date) BETWEEN ? AND ?
+                GROUP BY bi.product_code, p.product_name
+                ORDER BY p.product_name
+                """;
 
         return executeQuery(sql, rs -> {
             List<ProductSalesSummary> results = new ArrayList<>();
             while (rs.next()) {
                 results.add(new ProductSalesSummary(
-                    rs.getString("product_code"),
-                    rs.getString("product_name"),
-                    rs.getInt("total_quantity"),
-                    rs.getBigDecimal("total_revenue")
-                ));
+                        rs.getString("product_code"),
+                        rs.getString("product_name"),
+                        rs.getInt("total_quantity"),
+                        rs.getBigDecimal("total_revenue")));
             }
             return results;
         }, startDate, endDate);
     }
 
     @Override
-    public List<ProductSalesSummary> getProductSalesSummaryByStoreType(LocalDate startDate, LocalDate endDate, StoreType storeType) {
+    public List<ProductSalesSummary> getProductSalesSummaryByStoreType(LocalDate startDate, LocalDate endDate,
+            StoreType storeType) {
         String sql = """
-            SELECT bi.product_code, p.product_name,
-                   SUM(bi.quantity) as total_quantity,
-                   SUM(bi.line_total) as total_revenue
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            JOIN bill b ON bi.bill_id = b.bill_id
-            WHERE DATE(b.bill_date) BETWEEN ? AND ? AND b.store_type = ?
-            GROUP BY bi.product_code, p.product_name
-            ORDER BY p.product_name
-            """;
+                SELECT bi.product_code, p.product_name,
+                       SUM(bi.quantity) as total_quantity,
+                       SUM(bi.line_total) as total_revenue
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                JOIN bill b ON bi.bill_id = b.bill_id
+                WHERE DATE(b.bill_date) BETWEEN ? AND ? AND b.store_type = ?
+                GROUP BY bi.product_code, p.product_name
+                ORDER BY p.product_name
+                """;
 
         return executeQuery(sql, rs -> {
             List<ProductSalesSummary> results = new ArrayList<>();
             while (rs.next()) {
                 results.add(new ProductSalesSummary(
-                    rs.getString("product_code"),
-                    rs.getString("product_name"),
-                    rs.getInt("total_quantity"),
-                    rs.getBigDecimal("total_revenue")
-                ));
+                        rs.getString("product_code"),
+                        rs.getString("product_name"),
+                        rs.getInt("total_quantity"),
+                        rs.getBigDecimal("total_revenue")));
             }
             return results;
         }, startDate, endDate, storeType.name());
@@ -292,23 +292,23 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
     @Override
     public List<BillItem> findAll() {
         String sql = """
-            SELECT bi.*, p.product_name
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            ORDER BY bi.bill_item_id DESC
-            """;
+                SELECT bi.*, p.product_name
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                ORDER BY bi.bill_item_id DESC
+                """;
         return executeQuery(sql, rs -> mapToList(rs, this::mapRow));
     }
 
     @Override
     public List<BillItem> findAll(int offset, int limit) {
         String sql = """
-            SELECT bi.*, p.product_name
-            FROM bill_item bi
-            JOIN product p ON bi.product_code = p.product_code
-            ORDER BY bi.bill_item_id DESC
-            LIMIT ? OFFSET ?
-            """;
+                SELECT bi.*, p.product_name
+                FROM bill_item bi
+                JOIN product p ON bi.product_code = p.product_code
+                ORDER BY bi.bill_item_id DESC
+                LIMIT ? OFFSET ?
+                """;
         return executeQuery(sql, rs -> mapToList(rs, this::mapRow), limit, offset);
     }
 

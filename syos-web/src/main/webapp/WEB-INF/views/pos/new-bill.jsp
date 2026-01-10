@@ -32,11 +32,10 @@
                                 <h2 class="card-header">Transaction Setup</h2>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label class="input-label">Store Type *</label>
-                                        <select id="storeType" class="input-field" required>
-                                            <option value="PHYSICAL">Physical Store</option>
-                                            <option value="ONLINE">Online Store</option>
-                                        </select>
+                                        <label class="input-label">Store Type</label>
+                                        <input type="text" class="input-field bg-gray-100" value="Physical Store"
+                                            readonly>
+                                        <input type="hidden" id="storeType" value="PHYSICAL">
                                     </div>
                                     <div>
                                         <label class="input-label">Transaction Type *</label>
@@ -45,15 +44,11 @@
                                             <option value="CREDIT">Credit/Card</option>
                                         </select>
                                     </div>
-                                    <div id="customerIdGroup" class="hidden">
-                                        <label class="input-label">Customer ID *</label>
-                                        <input type="number" id="customerId" class="input-field"
-                                            placeholder="Enter customer ID">
-                                    </div>
                                     <div>
                                         <label class="input-label">Cashier ID</label>
                                         <input type="text" id="cashierId" class="input-field" placeholder="Optional">
                                     </div>
+                                    <input type="hidden" id="customerId" value="">
                                 </div>
                             </div>
 
@@ -142,9 +137,21 @@
                                 </div>
                             </div>
 
-                            <div class="mt-4">
-                                <button onclick="clearCart()" class="btn-danger w-full">
+                            <div class="mt-4 space-y-2">
+                                <button onclick="clearCart()" class="btn-secondary w-full" id="clearCartBtn"
+                                    style="display: none;">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
                                     Clear Cart
+                                </button>
+                                <button onclick="cancelTransaction()" class="btn-danger w-full">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Cancel Transaction
                                 </button>
                             </div>
                         </div>
@@ -154,12 +161,6 @@
                         // ==================== Client-Side Cart State ====================
                         let cartItems = [];  // {productCode, productName, quantity, unitPrice, lineTotal}
                         let cartDiscount = 0;
-
-                        // Show customer ID for online orders
-                        document.getElementById('storeType').addEventListener('change', function () {
-                            const customerGroup = document.getElementById('customerIdGroup');
-                            customerGroup.classList.toggle('hidden', this.value !== 'ONLINE');
-                        });
 
                         // Show/hide cash tendered based on transaction type
                         document.getElementById('transactionType').addEventListener('change', function () {
@@ -272,6 +273,9 @@
                             // Enable checkout button if we have items
                             document.getElementById('checkoutBtn').disabled = cartItems.length === 0;
 
+                            // Show/hide Clear Cart button based on cart state
+                            document.getElementById('clearCartBtn').style.display = cartItems.length > 0 ? 'flex' : 'none';
+
                             // Update change calculation
                             calculateChange();
                         }
@@ -313,15 +317,8 @@
 
                             const storeType = document.getElementById('storeType').value;
                             const transactionType = document.getElementById('transactionType').value;
-                            const customerId = document.getElementById('customerId').value;
                             const cashierId = document.getElementById('cashierId').value;
                             const tenderedAmount = parseFloat(document.getElementById('tenderedAmount').value) || 0;
-
-                            // Validate online orders need customer ID
-                            if (storeType === 'ONLINE' && !customerId) {
-                                showNotification('Customer ID is required for online orders', 'error');
-                                return;
-                            }
 
                             // Validate cash payment
                             const subtotal = cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
@@ -336,7 +333,7 @@
                             const checkoutRequest = {
                                 storeType: storeType,
                                 transactionType: transactionType,
-                                customerId: customerId ? parseInt(customerId) : null,
+                                customerId: null, // Physical store sales don't require customer ID
                                 cashierId: cashierId || null,
                                 items: cartItems.map(item => ({
                                     productCode: item.productCode,
@@ -379,12 +376,15 @@
                             showNotification('Cart cleared', 'success');
                         }
 
-                        // Set store type from URL parameter
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const storeTypeParam = urlParams.get('storeType');
-                        if (storeTypeParam) {
-                            document.getElementById('storeType').value = storeTypeParam;
-                            document.getElementById('storeType').dispatchEvent(new Event('change'));
+                        function cancelTransaction() {
+                            if (cartItems.length > 0) {
+                                // Scenario 1: Cart has items - ask for confirmation
+                                if (!confirm('You have items in your cart. Are you sure you want to cancel this transaction?')) {
+                                    return;
+                                }
+                            }
+                            // Both scenarios: Navigate back to POS home
+                            window.location.href = ctx + '/pos';
                         }
                     </script>
 
