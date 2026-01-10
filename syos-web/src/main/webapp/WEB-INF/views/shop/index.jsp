@@ -162,6 +162,11 @@
                     menuHtml += '<a href="' + ctx + '/pos" class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600">Go to POS</a>';
                 }
 
+                // Show Reports link for managers
+                if (userRole === 'MANAGER') {
+                    menuHtml += '<a href="' + ctx + '/reports" class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">Reports</a>';
+                }
+
                 // Logout button for all users
                 menuHtml += '<button onclick="logout()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">Logout</button>';
 
