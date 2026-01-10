@@ -29,61 +29,56 @@ public class SecurityFilter implements Filter {
 
     // Paths accessible without authentication
     private static final Set<String> PUBLIC_PATHS = Set.of(
-        "/",
-        "/index.jsp",
-        "/login",
-        "/register",
-        "/logout",
-        "/api/auth/login",
-        "/api/auth/register",
-        "/api/auth/logout",
-        "/api/auth/status",
-        "/api/products",
-        "/api/categories",
-        "/shop"
-    );
+            "/",
+            "/index.jsp",
+            "/login",
+            "/register",
+            "/logout",
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/logout",
+            "/api/auth/status",
+            "/api/products",
+            "/api/categories",
+            "/shop");
 
     // Paths for CUSTOMER role (shopping)
     private static final Set<String> CUSTOMER_PATHS = Set.of(
-        "/cart",
-        "/checkout",
-        "/orders",
-        "/profile",
-        "/api/cart",
-        "/api/orders"
-    );
+            "/cart",
+            "/checkout",
+            "/orders",
+            "/profile",
+            "/api/cart",
+            "/api/orders");
 
-    // Paths for CASHIER role (POS only)
+    // Paths for CASHIER role (POS and store stock)
     private static final Set<String> CASHIER_PATHS = Set.of(
-        "/pos",
-        "/api/billing"
-    );
+            "/pos",
+            "/store-stock",
+            "/api/billing");
 
     // Paths for INVENTORY_MANAGER role
     private static final Set<String> INVENTORY_PATHS = Set.of(
-        "/inventory",
-        "/store-stock",
-        "/api/inventory",
-        "/api/store-inventory",
-        "/reports/reshelve",
-        "/reports/reorder-level",
-        "/reports/batch-stock"
-    );
+            "/inventory",
+            "/store-stock",
+            "/api/inventory",
+            "/api/store-inventory",
+            "/reports/reshelve",
+            "/reports/reorder-level",
+            "/reports/batch-stock");
 
     // Paths for MANAGER role (reports only)
     private static final Set<String> MANAGER_PATHS = Set.of(
-        "/reports",
-        "/api/reports"
-    );
+            "/reports",
+            "/api/reports");
 
     // Paths for ADMIN role only
     private static final Set<String> ADMIN_PATHS = Set.of(
-        "/admin",
-        "/api/admin",
-        "/dashboard",
-        "/products",
-        "/customers"
-    );
+            "/admin",
+            "/api/admin",
+            "/dashboard",
+            "/products",
+            "/customers");
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -144,18 +139,18 @@ public class SecurityFilter implements Filter {
      */
     private boolean isStaticResource(String path) {
         return path.startsWith("/static/") ||
-               path.startsWith("/css/") ||
-               path.startsWith("/js/") ||
-               path.startsWith("/images/") ||
-               path.endsWith(".css") ||
-               path.endsWith(".js") ||
-               path.endsWith(".png") ||
-               path.endsWith(".jpg") ||
-               path.endsWith(".gif") ||
-               path.endsWith(".svg") ||
-               path.endsWith(".ico") ||
-               path.endsWith(".woff") ||
-               path.endsWith(".woff2");
+                path.startsWith("/css/") ||
+                path.startsWith("/js/") ||
+                path.startsWith("/images/") ||
+                path.endsWith(".css") ||
+                path.endsWith(".js") ||
+                path.endsWith(".png") ||
+                path.endsWith(".jpg") ||
+                path.endsWith(".gif") ||
+                path.endsWith(".svg") ||
+                path.endsWith(".ico") ||
+                path.endsWith(".woff") ||
+                path.endsWith(".woff2");
     }
 
     /**
@@ -229,8 +224,8 @@ public class SecurityFilter implements Filter {
      * Handles unauthenticated requests.
      */
     private void handleUnauthenticated(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        String path) throws IOException {
+            HttpServletResponse response,
+            String path) throws IOException {
         logger.debug("Unauthenticated access attempt to: {}", path);
 
         if (path.startsWith("/api/")) {
@@ -239,8 +234,7 @@ public class SecurityFilter implements Filter {
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write(
-                "{\"success\":false,\"error\":\"Authentication required\",\"code\":\"UNAUTHORIZED\"}"
-            );
+                    "{\"success\":false,\"error\":\"Authentication required\",\"code\":\"UNAUTHORIZED\"}");
         } else {
             // Redirect to login for view requests, preserving the intended destination
             String redirectUrl = request.getContextPath() + "/login";
@@ -257,11 +251,11 @@ public class SecurityFilter implements Filter {
      * Handles unauthorized (insufficient permissions) requests.
      */
     private void handleUnauthorized(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     String path,
-                                     UserRole userRole) throws IOException {
+            HttpServletResponse response,
+            String path,
+            UserRole userRole) throws IOException {
         logger.warn("Unauthorized access attempt to: {} by user: {} (role: {})",
-            path, request.getSession().getAttribute("userEmail"), userRole);
+                path, request.getSession().getAttribute("userEmail"), userRole);
 
         if (path.startsWith("/api/")) {
             // Return JSON error for API requests
@@ -269,8 +263,8 @@ public class SecurityFilter implements Filter {
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write(
-                "{\"success\":false,\"error\":\"Access denied. Your role (" + userRole.getDisplayName() + ") does not have permission to access this resource.\",\"code\":\"FORBIDDEN\"}"
-            );
+                    "{\"success\":false,\"error\":\"Access denied. Your role (" + userRole.getDisplayName()
+                            + ") does not have permission to access this resource.\",\"code\":\"FORBIDDEN\"}");
         } else {
             // Redirect based on role
             String redirectPath = getDefaultRedirectForRole(userRole);

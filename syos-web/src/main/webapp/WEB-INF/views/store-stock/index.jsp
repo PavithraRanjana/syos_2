@@ -1,163 +1,119 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+        <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+            <%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
 
-<t:layout pageTitle="Store Stock" activeNav="store-stock">
+                <t:layout pageTitle="Physical Store Stock" activeNav="store-stock">
 
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Store Stock Overview</h1>
-            <p class="mt-1 text-sm text-gray-500">Manage physical and online store inventory</p>
-        </div>
-        <div class="mt-4 sm:mt-0 flex space-x-3">
-            <a href="${pageContext.request.contextPath}/inventory/reports" class="btn-secondary">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Reports
-            </a>
-            <a href="${pageContext.request.contextPath}/store-stock/restock" class="btn-primary">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Restock
-            </a>
-        </div>
-    </div>
-
-    <!-- Alert Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="stat-card border-syos-warning">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Physical Store Low Stock</p>
-                    <p class="text-3xl font-bold text-gray-900">${physicalLowStockCount}</p>
-                </div>
-                <a href="${pageContext.request.contextPath}/store-stock/low-stock" class="btn-warning btn-sm">View</a>
-            </div>
-        </div>
-        <div class="stat-card border-syos-danger">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Online Store Low Stock</p>
-                    <p class="text-3xl font-bold text-gray-900">${onlineLowStockCount}</p>
-                </div>
-                <a href="${pageContext.request.contextPath}/store-stock/low-stock" class="btn-danger btn-sm">View</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Store Tabs -->
-    <div class="card">
-        <div class="border-b border-gray-200 mb-4">
-            <nav class="-mb-px flex space-x-8">
-                <button onclick="showTab('physical')" id="physicalTab"
-                        class="border-b-2 border-syos-primary py-2 px-1 text-sm font-medium text-syos-primary">
-                    Physical Store
-                </button>
-                <button onclick="showTab('online')" id="onlineTab"
-                        class="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
-                    Online Store
-                </button>
-            </nav>
-        </div>
-
-        <!-- Physical Store Stock -->
-        <div id="physicalContent">
-            <c:choose>
-                <c:when test="${not empty physicalSummary}">
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th class="table-header">Product Code</th>
-                                    <th class="table-header">Product Name</th>
-                                    <th class="table-header text-right">Total Qty</th>
-                                    <th class="table-header text-right">Batches</th>
-                                    <th class="table-header text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <c:forEach var="item" items="${physicalSummary}">
-                                    <tr class="table-row">
-                                        <td class="table-cell font-mono">${item.productCode()}</td>
-                                        <td class="table-cell">${item.productName()}</td>
-                                        <td class="table-cell text-right">
-                                            <span class="${item.totalQuantity() <= 10 ? 'text-red-600 font-bold' : ''}">${item.totalQuantity()}</span>
-                                        </td>
-                                        <td class="table-cell text-right">${item.batchCount()}</td>
-                                        <td class="table-cell text-right">
-                                            <a href="${pageContext.request.contextPath}/store-stock/physical?product=${item.productCode()}"
-                                               class="text-syos-primary hover:underline">Details</a>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
+                    <!-- Page Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Physical Store Stock</h1>
+                            <p class="mt-1 text-sm text-gray-500">View product codes and stock quantities for in-store
+                                sales</p>
+                        </div>
+                        <div class="mt-4 sm:mt-0">
+                            <a href="${pageContext.request.contextPath}/pos/new" class="btn-primary">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                New Sale
+                            </a>
+                        </div>
                     </div>
-                </c:when>
-                <c:otherwise>
-                    <p class="text-center text-gray-500 py-8">No stock in physical store</p>
-                </c:otherwise>
-            </c:choose>
-        </div>
 
-        <!-- Online Store Stock -->
-        <div id="onlineContent" class="hidden">
-            <c:choose>
-                <c:when test="${not empty onlineSummary}">
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th class="table-header">Product Code</th>
-                                    <th class="table-header">Product Name</th>
-                                    <th class="table-header text-right">Total Qty</th>
-                                    <th class="table-header text-right">Batches</th>
-                                    <th class="table-header text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <c:forEach var="item" items="${onlineSummary}">
-                                    <tr class="table-row">
-                                        <td class="table-cell font-mono">${item.productCode()}</td>
-                                        <td class="table-cell">${item.productName()}</td>
-                                        <td class="table-cell text-right">
-                                            <span class="${item.totalQuantity() <= 10 ? 'text-red-600 font-bold' : ''}">${item.totalQuantity()}</span>
-                                        </td>
-                                        <td class="table-cell text-right">${item.batchCount()}</td>
-                                        <td class="table-cell text-right">
-                                            <a href="${pageContext.request.contextPath}/store-stock/online?product=${item.productCode()}"
-                                               class="text-syos-primary hover:underline">Details</a>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
+                    <!-- Summary Card -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="stat-card border-syos-primary">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Total Products In Stock</p>
+                                    <p class="text-3xl font-bold text-gray-900">${physicalSummary.size()}</p>
+                                </div>
+                                <div class="p-3 bg-blue-100 rounded-full">
+                                    <svg class="w-8 h-8 text-syos-primary" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card border-syos-warning">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Low Stock Items</p>
+                                    <p class="text-3xl font-bold text-gray-900">${physicalLowStockCount}</p>
+                                </div>
+                                <div class="p-3 bg-yellow-100 rounded-full">
+                                    <svg class="w-8 h-8 text-syos-warning" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </c:when>
-                <c:otherwise>
-                    <p class="text-center text-gray-500 py-8">No stock in online store</p>
-                </c:otherwise>
-            </c:choose>
-        </div>
-    </div>
 
-    <script>
-        function showTab(tab) {
-            document.getElementById('physicalContent').classList.toggle('hidden', tab !== 'physical');
-            document.getElementById('onlineContent').classList.toggle('hidden', tab !== 'online');
-            document.getElementById('physicalTab').classList.toggle('border-syos-primary', tab === 'physical');
-            document.getElementById('physicalTab').classList.toggle('text-syos-primary', tab === 'physical');
-            document.getElementById('physicalTab').classList.toggle('border-transparent', tab !== 'physical');
-            document.getElementById('physicalTab').classList.toggle('text-gray-500', tab !== 'physical');
-            document.getElementById('onlineTab').classList.toggle('border-syos-primary', tab === 'online');
-            document.getElementById('onlineTab').classList.toggle('text-syos-primary', tab === 'online');
-            document.getElementById('onlineTab').classList.toggle('border-transparent', tab !== 'online');
-            document.getElementById('onlineTab').classList.toggle('text-gray-500', tab !== 'online');
-        }
-    </script>
+                    <!-- Stock Table -->
+                    <div class="card">
+                        <h2 class="card-header">Available Stock</h2>
+                        <c:choose>
+                            <c:when test="${not empty physicalSummary}">
+                                <div class="table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="table-header">Product Code</th>
+                                                <th class="table-header">Product Name</th>
+                                                <th class="table-header text-right">Quantity Available</th>
+                                                <th class="table-header text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <c:forEach var="item" items="${physicalSummary}">
+                                                <tr class="table-row">
+                                                    <td class="table-cell">
+                                                        <span
+                                                            class="font-mono text-sm bg-gray-100 px-2 py-1 rounded">${item.productCode()}</span>
+                                                    </td>
+                                                    <td class="table-cell font-medium">${item.productName()}</td>
+                                                    <td class="table-cell text-right">
+                                                        <span
+                                                            class="${item.totalQuantity() <= 10 ? 'text-red-600 font-bold' : 'font-semibold'}">${item.totalQuantity()}</span>
+                                                    </td>
+                                                    <td class="table-cell text-right">
+                                                        <c:choose>
+                                                            <c:when test="${item.totalQuantity() <= 0}">
+                                                                <span class="badge badge-danger">Out of Stock</span>
+                                                            </c:when>
+                                                            <c:when test="${item.totalQuantity() <= 10}">
+                                                                <span class="badge badge-warning">Low Stock</span>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <span class="badge badge-success">In Stock</span>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </td>
+                                                </tr>
+                                            </c:forEach>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="text-center py-12 text-gray-500">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    <p>No stock available in physical store</p>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
 
-</t:layout>
+                </t:layout>
