@@ -65,7 +65,8 @@ public class BillingServiceImpl implements BillingService {
 
     @Override
     public Bill createBill(StoreType storeType, TransactionType transactionType, Integer customerId, String cashierId) {
-        logger.debug("Creating bill: storeType={}, transactionType={}, customerId={}", storeType, transactionType, customerId);
+        logger.debug("Creating bill: storeType={}, transactionType={}, customerId={}", storeType, transactionType,
+                customerId);
 
         if (storeType == null) {
             throw new ValidationException("Store type is required");
@@ -109,7 +110,7 @@ public class BillingServiceImpl implements BillingService {
 
         // Get product
         Product product = productRepository.findByProductCode(productCode)
-            .orElseThrow(() -> new ProductNotFoundException(productCode));
+                .orElseThrow(() -> new ProductNotFoundException(productCode));
 
         if (!product.isActive()) {
             throw new ValidationException("Product is not active: " + productCode);
@@ -123,7 +124,7 @@ public class BillingServiceImpl implements BillingService {
 
         // Get batch allocations (FIFO)
         List<BatchAllocation> allocations = storeInventoryService.allocateStockForSale(
-            productCode, bill.getStoreType(), quantity);
+                productCode, bill.getStoreType(), quantity);
 
         // Create bill items for each batch allocation
         List<BillItem> createdItems = new ArrayList<>();
@@ -147,7 +148,7 @@ public class BillingServiceImpl implements BillingService {
         billRepository.save(bill);
 
         logger.info("Added {} item(s) to bill {}: {} x {} (from {} batches)",
-            createdItems.size(), billId, productCode, quantity, allocations.size());
+                createdItems.size(), billId, productCode, quantity, allocations.size());
 
         // Return the first item (or a combined view if multiple batches)
         return createdItems.isEmpty() ? null : createdItems.get(0);
@@ -162,7 +163,7 @@ public class BillingServiceImpl implements BillingService {
         }
 
         BillItem item = billItemRepository.findById(billItemId)
-            .orElseThrow(() -> new ValidationException("Bill item not found: " + billItemId));
+                .orElseThrow(() -> new ValidationException("Bill item not found: " + billItemId));
 
         Bill bill = getBillInProgress(item.getBillId());
 
@@ -194,7 +195,7 @@ public class BillingServiceImpl implements BillingService {
         logger.debug("Removing bill item {}", billItemId);
 
         BillItem item = billItemRepository.findById(billItemId)
-            .orElseThrow(() -> new ValidationException("Bill item not found: " + billItemId));
+                .orElseThrow(() -> new ValidationException("Bill item not found: " + billItemId));
 
         Bill bill = getBillInProgress(item.getBillId());
 
@@ -255,15 +256,15 @@ public class BillingServiceImpl implements BillingService {
         Money tendered = new Money(tenderedAmount);
         if (tendered.isLessThan(bill.getTotalAmount())) {
             throw new InvalidPaymentException(
-                "Insufficient payment. Required: " + bill.getTotalAmount().format() +
-                ", Tendered: " + tendered.format());
+                    "Insufficient payment. Required: " + bill.getTotalAmount().format() +
+                            ", Tendered: " + tendered.format());
         }
 
         bill.processCashPayment(tendered);
         Bill updated = billRepository.save(bill);
 
         logger.info("Cash payment processed for bill {}: tendered {}, change {}",
-            billId, tenderedAmount, bill.getChangeAmount());
+                billId, tenderedAmount, bill.getChangeAmount());
         return updated;
     }
 
@@ -304,10 +305,10 @@ public class BillingServiceImpl implements BillingService {
             boolean deducted;
             if (bill.getStoreType() == StoreType.PHYSICAL) {
                 deducted = storeInventoryService.reducePhysicalStoreStock(
-                    item.getProductCodeString(), item.getMainInventoryId(), item.getQuantity());
+                        item.getProductCodeString(), item.getMainInventoryId(), item.getQuantity());
             } else {
                 deducted = storeInventoryService.reduceOnlineStoreStock(
-                    item.getProductCodeString(), item.getMainInventoryId(), item.getQuantity());
+                        item.getProductCodeString(), item.getMainInventoryId(), item.getQuantity());
             }
 
             if (!deducted) {
@@ -421,7 +422,7 @@ public class BillingServiceImpl implements BillingService {
         // Check payment for cash transactions
         if (bill.getTransactionType() == TransactionType.CASH) {
             if (bill.getTenderedAmount() == null ||
-                bill.getTenderedAmount().isLessThan(bill.getTotalAmount())) {
+                    bill.getTenderedAmount().isLessThan(bill.getTotalAmount())) {
                 errors.add("Cash payment not completed");
             }
         }
@@ -431,10 +432,10 @@ public class BillingServiceImpl implements BillingService {
             boolean hasStock;
             if (bill.getStoreType() == StoreType.PHYSICAL) {
                 hasStock = storeInventoryService.hasAvailableStock(
-                    item.getProductCodeString(), StoreType.PHYSICAL, item.getQuantity());
+                        item.getProductCodeString(), StoreType.PHYSICAL, item.getQuantity());
             } else {
                 hasStock = storeInventoryService.hasAvailableStock(
-                    item.getProductCodeString(), StoreType.ONLINE, item.getQuantity());
+                        item.getProductCodeString(), StoreType.ONLINE, item.getQuantity());
             }
             if (!hasStock) {
                 errors.add("Insufficient stock for " + item.getProductName());
@@ -454,7 +455,7 @@ public class BillingServiceImpl implements BillingService {
         if (bill == null) {
             // Try to load from database
             bill = billRepository.findById(billId)
-                .orElseThrow(() -> new BillNotFoundException(billId));
+                    .orElseThrow(() -> new BillNotFoundException(billId));
             billsInProgress.put(billId, bill);
         }
         return bill;
@@ -475,5 +476,194 @@ public class BillingServiceImpl implements BillingService {
         transaction.setBillId(bill.getBillId());
         transaction.setRemarks("Sale: Bill " + bill.getSerialNumberString());
         transactionRepository.save(transaction);
+    }
+
+    // ==================== POS Checkout (Single Atomic Transaction)
+    // ====================
+
+    @Override
+    public StockCheckResult checkStock(String productCode, int quantity, StoreType storeType) {
+        logger.debug("Checking stock for {} x {} in {}", productCode, quantity, storeType);
+
+        // Find product
+        Optional<Product> productOpt = productRepository.findByProductCode(productCode);
+        if (productOpt.isEmpty()) {
+            return StockCheckResult.notFound(productCode);
+        }
+
+        Product product = productOpt.get();
+        if (!product.isActive()) {
+            return StockCheckResult.notFound(productCode + " (inactive)");
+        }
+
+        // Check available stock
+        int available = storeInventoryService.getAvailableQuantity(productCode, storeType);
+        if (available < quantity) {
+            return StockCheckResult.unavailable(productCode, quantity, available);
+        }
+
+        return StockCheckResult.available(
+                productCode,
+                product.getProductName(),
+                product.getUnitPrice().getAmount(),
+                quantity,
+                available);
+    }
+
+    @Override
+    public CheckoutResult checkout(CheckoutRequest request) {
+        logger.info("Processing checkout: {} items, storeType={}, transactionType={}",
+                request.items().size(), request.storeType(), request.transactionType());
+
+        List<String> errors = new ArrayList<>();
+
+        // Validate basic request
+        if (request.storeType() == null) {
+            errors.add("Store type is required");
+        }
+        if (request.transactionType() == null) {
+            errors.add("Transaction type is required");
+        }
+        if (request.items() == null || request.items().isEmpty()) {
+            errors.add("Cart is empty - add items before checkout");
+        }
+        if (request.storeType() == StoreType.ONLINE && request.customerId() == null) {
+            errors.add("Customer ID is required for online orders");
+        }
+
+        if (!errors.isEmpty()) {
+            return CheckoutResult.failure(errors);
+        }
+
+        // Use parallel stream for concurrent stock validation
+        List<StockCheckResult> stockResults = request.items().parallelStream()
+                .map(item -> checkStock(item.productCode(), item.quantity(), request.storeType()))
+                .toList();
+
+        // Collect any stock errors
+        for (StockCheckResult result : stockResults) {
+            if (!result.available()) {
+                errors.add(result.message());
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            return CheckoutResult.failure(errors);
+        }
+
+        // Calculate subtotal from stock results (which have prices)
+        BigDecimal subtotal = stockResults.stream()
+                .map(r -> r.unitPrice().multiply(BigDecimal.valueOf(r.requestedQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Validate discount
+        BigDecimal discount = request.discount() != null ? request.discount() : BigDecimal.ZERO;
+        if (discount.compareTo(subtotal) > 0) {
+            return CheckoutResult.failure("Discount cannot exceed subtotal of " + subtotal);
+        }
+
+        BigDecimal tax = BigDecimal.ZERO; // Tax calculation can be added later
+        BigDecimal total = subtotal.subtract(discount).add(tax);
+
+        // Validate cash payment
+        BigDecimal cashTendered = request.cashTendered() != null ? request.cashTendered() : BigDecimal.ZERO;
+        if (request.transactionType() == TransactionType.CASH) {
+            if (cashTendered.compareTo(total) < 0) {
+                return CheckoutResult
+                        .failure("Insufficient cash tendered. Required: " + total + ", Tendered: " + cashTendered);
+            }
+        } else {
+            // For online/credit, tendered equals total
+            cashTendered = total;
+        }
+
+        BigDecimal change = cashTendered.subtract(total);
+
+        // === All validations passed - Create the bill atomically ===
+
+        String serialNumber = generateSerialNumber(request.storeType());
+        LocalDateTime billDate = LocalDateTime.now();
+
+        Bill bill = new Bill();
+        bill.setSerialNumber(new BillSerialNumber(serialNumber));
+        bill.setStoreType(request.storeType());
+        bill.setTransactionType(request.transactionType());
+        bill.setCustomerId(request.customerId());
+        bill.setCashierId(request.cashierId());
+        bill.setBillDate(billDate);
+        bill.setTenderedAmount(new Money(cashTendered));
+        bill.setChangeAmount(new Money(change));
+        bill.setDiscountAmount(new Money(discount));
+
+        Bill savedBill = billRepository.save(bill);
+        Integer billId = savedBill.getBillId();
+
+        // Create bill items and deduct stock
+        List<ItemDetail> itemDetails = new ArrayList<>();
+
+        for (int i = 0; i < request.items().size(); i++) {
+            ItemRequest itemReq = request.items().get(i);
+            StockCheckResult stockResult = stockResults.get(i);
+
+            // Get batch allocations (FIFO)
+            List<BatchAllocation> allocations = storeInventoryService.allocateStockForSale(
+                    itemReq.productCode(), request.storeType(), itemReq.quantity());
+
+            for (BatchAllocation allocation : allocations) {
+                BillItem billItem = new BillItem();
+                billItem.setBillId(billId);
+                billItem.setProductCode(new ProductCode(itemReq.productCode()));
+                billItem.setProductName(stockResult.productName());
+                billItem.setMainInventoryId(allocation.batchId());
+                billItem.setQuantity(allocation.quantity());
+                billItem.setUnitPrice(new Money(stockResult.unitPrice()));
+                billItem.recalculateTotal();
+
+                BillItem savedItem = billItemRepository.save(billItem);
+                savedBill.addItem(savedItem);
+
+                // Deduct stock immediately
+                if (request.storeType() == StoreType.PHYSICAL) {
+                    storeInventoryService.reducePhysicalStoreStock(
+                            itemReq.productCode(), allocation.batchId(), allocation.quantity());
+                } else {
+                    storeInventoryService.reduceOnlineStoreStock(
+                            itemReq.productCode(), allocation.batchId(), allocation.quantity());
+                }
+
+                // Log transaction
+                logSaleTransaction(savedBill, savedItem);
+            }
+
+            // Add to receipt details (aggregate by product for display)
+            BigDecimal lineTotal = stockResult.unitPrice().multiply(BigDecimal.valueOf(itemReq.quantity()));
+            itemDetails.add(new ItemDetail(
+                    stockResult.productName(), // Name only, no code
+                    itemReq.quantity(),
+                    stockResult.unitPrice(),
+                    lineTotal));
+        }
+
+        // Set bill totals explicitly (calculateTotals may not work if items list isn't
+        // in memory)
+        savedBill.setSubtotal(new Money(subtotal));
+        savedBill.setTaxAmount(new Money(tax));
+        savedBill.setTotalAmount(new Money(total));
+        billRepository.save(savedBill);
+
+        logger.info("Checkout complete: Bill {} (ID: {}), Total: {}, Items: {}",
+                serialNumber, billId, total, itemDetails.size());
+
+        return CheckoutResult.success(
+                billId,
+                serialNumber,
+                subtotal,
+                discount,
+                tax,
+                total,
+                cashTendered,
+                change,
+                billDate,
+                itemDetails);
     }
 }

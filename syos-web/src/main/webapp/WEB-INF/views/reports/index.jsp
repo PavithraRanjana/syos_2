@@ -78,20 +78,7 @@
                                     </div>
                                 </a>
 
-                                <a href="${pageContext.request.contextPath}/reports/top-products"
-                                    class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                                    <div class="p-3 bg-syos-success rounded-lg">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-4">
-                                        <p class="font-medium text-gray-900">Top Selling Products</p>
-                                        <p class="text-sm text-gray-500">Best performers by revenue</p>
-                                    </div>
-                                </a>
+
                             </div>
                         </div>
 
@@ -151,8 +138,7 @@
                     <div class="card mt-6">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-lg font-semibold text-gray-800">Top Selling Products This Month</h2>
-                            <a href="${pageContext.request.contextPath}/reports/top-products"
-                                class="text-sm text-syos-primary hover:underline">View all</a>
+
                         </div>
                         <c:choose>
                             <c:when test="${not empty summary.topProducts()}">

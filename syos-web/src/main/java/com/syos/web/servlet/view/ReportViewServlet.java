@@ -37,8 +37,6 @@ public class ReportViewServlet extends BaseViewServlet {
                 showReportsHome(request, response);
             } else if (pathInfo.equals("/sales")) {
                 showSalesReport(request, response);
-            } else if (pathInfo.equals("/top-products")) {
-                showTopProductsReport(request, response);
             } else if (pathInfo.equals("/reshelve")) {
                 showReshelveReport(request, response);
             } else if (pathInfo.equals("/reorder-level")) {
@@ -133,26 +131,6 @@ public class ReportViewServlet extends BaseViewServlet {
 
         setActiveNav(request, "reports");
         render(request, response, "reports/sales.jsp");
-    }
-
-    private void showTopProductsReport(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String startDateStr = getStringParameter(request, "startDate", "");
-        String endDateStr = getStringParameter(request, "endDate", "");
-        int limit = getIntParameter(request, "limit", 20);
-
-        LocalDate endDate = endDateStr.isEmpty() ? LocalDate.now() : LocalDate.parse(endDateStr);
-        LocalDate startDate = startDateStr.isEmpty() ? endDate.minusDays(30) : LocalDate.parse(startDateStr);
-
-        List<ProductSalesReport> topProducts = reportService.getTopSellingProducts(startDate, endDate, limit);
-        request.setAttribute("topProducts", topProducts);
-
-        request.setAttribute("startDate", startDate);
-        request.setAttribute("endDate", endDate);
-        request.setAttribute("limit", limit);
-
-        setActiveNav(request, "reports");
-        render(request, response, "reports/top-products.jsp");
     }
 
     private void showReshelveReport(HttpServletRequest request, HttpServletResponse response)

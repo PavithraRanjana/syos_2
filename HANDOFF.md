@@ -232,3 +232,87 @@ cp target/syos.war /opt/homebrew/Cellar/tomcat/11.0.15/libexec/webapps/
 - `src/main/java/com/syos/web/filter/SecurityFilter.java` - RBAC configuration
 - `src/main/java/com/syos/web/servlet/view/AuthViewServlet.java` - Login redirects
 - `src/main/webapp/WEB-INF/views/auth/login.jsp` - Client-side role redirects
+
+---
+
+## 6. Session Update: REMOVAL OF TOP PRODUCTS REPORT
+**Date: 2026-01-10**
+
+**Removed Feature:** `Top Products Report` (Dedicated Page)
+
+**Reason**: User requested removal of this specific route (`/syos/reports/top-products`) and associated view components.
+
+**Changes:**
+1.  **Servlet**: Removed `/top-products` block from `ReportViewServlet.doGet()` and deleted `showTopProductsReport()` method.
+2.  **View**: Removed "Top Selling Products" link card and "View all" link from `reports/index.jsp`.
+3.  **File Deletion**: Deleted `src/main/webapp/WEB-INF/views/reports/top-products.jsp`.
+
+**Note**: The underlying service method `getTopSellingProducts` was **RETAINED** because it is still used by:
+- The "Top Selling Products This Month" widget on the Reports Dashboard.
+- The "Top 5 Products" section in the Daily Sales Report.
+
+---
+
+## 7. Session Update: POS CHECKOUT FLOW REFACTOR
+**Date: 2026-01-10**
+
+### Problem Solved
+Previously, the POS system (`/syos/pos/new`) created a bill in the database immediately when "Start Bill" was clicked, before any items were added. This led to orphaned bill records if transactions were cancelled.
+
+### Solution: Deferred Bill Creation
+Bills are now created **only when "Process Payment" is clicked**. All cart state is managed client-side in JavaScript until checkout.
+
+### Architecture Changes
+
+#### Service Layer (`BillingService.java` / `BillingServiceImpl.java`)
+Added new methods:
+- `checkout(CheckoutRequest request)` - Atomic bill creation with all items, discount, and payment in a single transaction
+- `checkStock(String productCode, int quantity, StoreType storeType)` - Validates stock availability before adding to cart
+
+Added DTOs:
+- `CheckoutRequest`, `CheckoutResult`, `ItemRequest`, `ItemDetail`, `StockCheckResult`
+
+**Concurrency**: Uses `parallelStream()` for concurrent stock validation across multiple items.
+
+#### API Layer (`BillingApiServlet.java`)
+Added endpoints:
+- `GET /api/billing/stock/{productCode}?quantity=X&storeType=PHYSICAL` - Stock check before adding to cart
+- `POST /api/billing/checkout` - Atomic checkout with all cart items
+
+#### Frontend (`new-bill.jsp`)
+Complete refactor:
+- Removed "Start Bill" concept - items are added directly to client-side cart
+- Stock validation happens **when adding items** (not at checkout)
+- Single API call at checkout creates the complete bill
+- Clear error messages for: no stock, invalid product, insufficient cash, discount > subtotal
+
+#### Receipt (`receipt.jsp`) - **NEW FILE**
+Created receipt view showing:
+- Product name only (no code per requirement)
+- Quantity and unit price
+- Line total per item
+- Discount (if applicable)
+- Cash tendered and change (for cash transactions)
+- Bill date and serial number
+- Print-friendly layout
+
+### Files Modified/Created
+| File | Change |
+|------|--------|
+| `BillingService.java` | Added `checkout()`, `checkStock()`, and DTOs |
+| `BillingServiceImpl.java` | Implemented atomic checkout with concurrent validation |
+| `BillingApiServlet.java` | Added `/checkout` and `/stock/{code}` endpoints |
+| `new-bill.jsp` | Complete refactor for client-side cart |
+| `receipt.jsp` | **NEW** - Receipt view with required fields |
+
+### SOLID Principles Applied
+- **SRP**: Checkout logic encapsulated in `checkout()` method
+- **OCP**: Extended BillingService with new methods without modifying existing ones
+- **DIP**: DTOs defined in interface, implementation in service layer
+
+### Validation Flow
+1. User adds item → Stock checked via API → Error message if unavailable
+2. User enters cash tendered → Client-side validation for sufficient payment
+3. User applies discount → Client-side validation that discount ≤ subtotal
+4. User clicks checkout → All validations re-run server-side → Bill created or errors returned
+

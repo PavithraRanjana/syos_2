@@ -12,7 +12,8 @@ import java.util.Optional;
 
 /**
  * Service interface for Billing operations.
- * Handles bill creation, item management, payment processing, and stock deduction.
+ * Handles bill creation, item management, payment processing, and stock
+ * deduction.
  */
 public interface BillingService {
 
@@ -126,9 +127,8 @@ public interface BillingService {
      * Bill validation result.
      */
     record ValidationResult(
-        boolean isValid,
-        List<String> errors
-    ) {
+            boolean isValid,
+            List<String> errors) {
         public static ValidationResult valid() {
             return new ValidationResult(true, List.of());
         }
@@ -139,6 +139,117 @@ public interface BillingService {
 
         public static ValidationResult invalid(String error) {
             return new ValidationResult(false, List.of(error));
+        }
+    }
+
+    // ==================== POS Checkout (Single Transaction) ====================
+
+    /**
+     * Creates and finalizes a complete bill in a single atomic transaction.
+     * This is the primary method for POS checkout - defers bill creation to payment
+     * time.
+     * Uses multithreading for concurrent stock validation across items.
+     */
+    CheckoutResult checkout(CheckoutRequest request);
+
+    /**
+     * Validates if a product has sufficient stock for the requested quantity.
+     * Used by POS to validate before adding to cart.
+     */
+    StockCheckResult checkStock(String productCode, int quantity, StoreType storeType);
+
+    /**
+     * Request DTO for POS checkout.
+     */
+    record CheckoutRequest(
+            StoreType storeType,
+            TransactionType transactionType,
+            Integer customerId,
+            String cashierId,
+            List<ItemRequest> items,
+            BigDecimal discount,
+            BigDecimal cashTendered) {
+    }
+
+    /**
+     * Item request within checkout.
+     */
+    record ItemRequest(String productCode, int quantity) {
+    }
+
+    /**
+     * Result DTO for checkout operation.
+     */
+    record CheckoutResult(
+            boolean success,
+            Integer billId,
+            String serialNumber,
+            BigDecimal subtotal,
+            BigDecimal discount,
+            BigDecimal tax,
+            BigDecimal total,
+            BigDecimal cashTendered,
+            BigDecimal change,
+            java.time.LocalDateTime billDate,
+            List<ItemDetail> items,
+            List<String> errors) {
+        public static CheckoutResult success(
+                Integer billId, String serialNumber, BigDecimal subtotal,
+                BigDecimal discount, BigDecimal tax, BigDecimal total,
+                BigDecimal cashTendered, BigDecimal change,
+                java.time.LocalDateTime billDate, List<ItemDetail> items) {
+            return new CheckoutResult(true, billId, serialNumber, subtotal, discount,
+                    tax, total, cashTendered, change, billDate, items, List.of());
+        }
+
+        public static CheckoutResult failure(List<String> errors) {
+            return new CheckoutResult(false, null, null, null, null, null, null,
+                    null, null, null, null, errors);
+        }
+
+        public static CheckoutResult failure(String error) {
+            return failure(List.of(error));
+        }
+    }
+
+    /**
+     * Item detail for receipt display.
+     */
+    record ItemDetail(
+            String productName, // Name only, no code per requirement
+            int quantity,
+            BigDecimal unitPrice,
+            BigDecimal lineTotal) {
+    }
+
+    /**
+     * Stock check result for POS item validation.
+     */
+    record StockCheckResult(
+            boolean available,
+            String productCode,
+            String productName,
+            BigDecimal unitPrice,
+            int requestedQuantity,
+            int availableQuantity,
+            String message) {
+        public static StockCheckResult available(String productCode, String productName,
+                BigDecimal unitPrice, int requested, int available) {
+            return new StockCheckResult(true, productCode, productName, unitPrice,
+                    requested, available, "Stock available");
+        }
+
+        public static StockCheckResult unavailable(String productCode, int requested, int available) {
+            String msg = available == 0
+                    ? "Product is out of stock"
+                    : "Insufficient stock. Only " + available + " available, requested " + requested;
+            return new StockCheckResult(false, productCode, null, null,
+                    requested, available, msg);
+        }
+
+        public static StockCheckResult notFound(String productCode) {
+            return new StockCheckResult(false, productCode, null, null,
+                    0, 0, "Product not found: " + productCode);
         }
     }
 }
