@@ -106,8 +106,62 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    public List<ProductSalesReport> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType) {
+        logger.debug("Generating top selling products report for {}: {} to {}, limit {}", storeType, startDate, endDate, limit);
+
+        List<BillItemRepository.ProductSalesSummary> summaries =
+            billItemRepository.getTopSellingProductsByStoreType(startDate, endDate, limit, storeType);
+
+        return summaries.stream()
+            .map(s -> new ProductSalesReport(
+                s.productCode(),
+                s.productName(),
+                s.totalQuantity(),
+                s.totalRevenue()
+            ))
+            .toList();
+    }
+
+    @Override
     public SalesSummary getSalesSummary(LocalDate date) {
         return getSalesSummaryForRange(date, date);
+    }
+
+    @Override
+    public SalesSummary getSalesSummaryByStoreType(LocalDate date, StoreType storeType) {
+        logger.debug("Generating sales summary for {} on {}", storeType, date);
+
+        // Get store type sales
+        List<BillRepository.StoreTypeSalesSummary> storeTypeSummaries = billRepository.getSalesByStoreType(date, date);
+
+        // Find the summary for the requested store type
+        BillRepository.StoreTypeSalesSummary storeSummary = storeTypeSummaries.stream()
+            .filter(s -> s.storeType() == storeType)
+            .findFirst()
+            .orElse(new BillRepository.StoreTypeSalesSummary(storeType, 0, BigDecimal.ZERO));
+
+        int totalBills = storeSummary.billCount();
+        BigDecimal totalSales = storeSummary.totalAmount();
+
+        BigDecimal averageBillValue = totalBills > 0 ?
+            totalSales.divide(BigDecimal.valueOf(totalBills), 2, RoundingMode.HALF_UP) :
+            BigDecimal.ZERO;
+
+        // Get total items sold for this store type
+        List<BillItemRepository.ProductSalesSummary> productSummaries =
+            billItemRepository.getProductSalesSummaryByStoreType(date, date, storeType);
+        int totalItemsSold = productSummaries.stream()
+            .mapToInt(BillItemRepository.ProductSalesSummary::totalQuantity)
+            .sum();
+
+        return new SalesSummary(
+            date,
+            date,
+            totalBills,
+            totalSales,
+            averageBillValue,
+            totalItemsSold
+        );
     }
 
     @Override

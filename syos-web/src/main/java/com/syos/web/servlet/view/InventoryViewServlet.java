@@ -4,7 +4,6 @@ import com.syos.config.ServiceRegistry;
 import com.syos.domain.enums.StoreType;
 import com.syos.domain.models.MainInventory;
 import com.syos.service.interfaces.InventoryService;
-import com.syos.service.interfaces.InventoryService.ProductInventorySummary;
 import com.syos.service.interfaces.ReportService;
 import com.syos.service.interfaces.ReportService.*;
 import jakarta.servlet.ServletException;
@@ -42,8 +41,6 @@ public class InventoryViewServlet extends BaseViewServlet {
                 listBatches(request, response);
             } else if (pathInfo.equals("/add")) {
                 showAddForm(request, response);
-            } else if (pathInfo.equals("/summary")) {
-                showSummary(request, response);
             } else if (pathInfo.equals("/expiring")) {
                 showExpiring(request, response);
             } else if (pathInfo.equals("/expired")) {
@@ -101,14 +98,6 @@ public class InventoryViewServlet extends BaseViewServlet {
             throws ServletException, IOException {
         setActiveNav(request, "inventory");
         render(request, response, "inventory/add.jsp");
-    }
-
-    private void showSummary(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        List<ProductInventorySummary> summaries = inventoryService.getInventorySummary();
-        request.setAttribute("summaries", summaries);
-        setActiveNav(request, "inventory");
-        render(request, response, "inventory/summary.jsp");
     }
 
     private void showExpiring(HttpServletRequest request, HttpServletResponse response)

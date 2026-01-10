@@ -29,9 +29,19 @@ public interface ReportService {
     List<ProductSalesReport> getTopSellingProducts(LocalDate startDate, LocalDate endDate, int limit);
 
     /**
+     * Gets top selling products for a date range filtered by store type.
+     */
+    List<ProductSalesReport> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType);
+
+    /**
      * Gets sales summary for a specific date.
      */
     SalesSummary getSalesSummary(LocalDate date);
+
+    /**
+     * Gets sales summary for a specific date filtered by store type.
+     */
+    SalesSummary getSalesSummaryByStoreType(LocalDate date, StoreType storeType);
 
     /**
      * Gets sales summary for a date range.

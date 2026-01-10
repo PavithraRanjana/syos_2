@@ -1,5 +1,6 @@
 package com.syos.repository.interfaces;
 
+import com.syos.domain.enums.StoreType;
 import com.syos.domain.models.BillItem;
 
 import java.math.BigDecimal;
@@ -48,9 +49,19 @@ public interface BillItemRepository extends Repository<BillItem, Integer> {
     List<ProductSalesSummary> getTopSellingProducts(LocalDate startDate, LocalDate endDate, int limit);
 
     /**
+     * Gets top selling products by quantity within a date range for a specific store type.
+     */
+    List<ProductSalesSummary> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType);
+
+    /**
      * Gets sales summary by product for a date range.
      */
     List<ProductSalesSummary> getProductSalesSummary(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Gets sales summary by product for a date range for a specific store type.
+     */
+    List<ProductSalesSummary> getProductSalesSummaryByStoreType(LocalDate startDate, LocalDate endDate, StoreType storeType);
 
     /**
      * Deletes all items for a specific bill.

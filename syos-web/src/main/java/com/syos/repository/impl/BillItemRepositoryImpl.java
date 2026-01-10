@@ -1,5 +1,6 @@
 package com.syos.repository.impl;
 
+import com.syos.domain.enums.StoreType;
 import com.syos.domain.models.BillItem;
 import com.syos.domain.valueobjects.Money;
 import com.syos.domain.valueobjects.ProductCode;
@@ -189,6 +190,35 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
     }
 
     @Override
+    public List<ProductSalesSummary> getTopSellingProductsByStoreType(LocalDate startDate, LocalDate endDate, int limit, StoreType storeType) {
+        String sql = """
+            SELECT bi.product_code, p.product_name,
+                   SUM(bi.quantity) as total_quantity,
+                   SUM(bi.line_total) as total_revenue
+            FROM bill_item bi
+            JOIN product p ON bi.product_code = p.product_code
+            JOIN bill b ON bi.bill_id = b.bill_id
+            WHERE DATE(b.bill_date) BETWEEN ? AND ? AND b.store_type = ?
+            GROUP BY bi.product_code, p.product_name
+            ORDER BY total_quantity DESC
+            LIMIT ?
+            """;
+
+        return executeQuery(sql, rs -> {
+            List<ProductSalesSummary> results = new ArrayList<>();
+            while (rs.next()) {
+                results.add(new ProductSalesSummary(
+                    rs.getString("product_code"),
+                    rs.getString("product_name"),
+                    rs.getInt("total_quantity"),
+                    rs.getBigDecimal("total_revenue")
+                ));
+            }
+            return results;
+        }, startDate, endDate, storeType.name(), limit);
+    }
+
+    @Override
     public List<ProductSalesSummary> getProductSalesSummary(LocalDate startDate, LocalDate endDate) {
         String sql = """
             SELECT bi.product_code, p.product_name,
@@ -214,6 +244,34 @@ public class BillItemRepositoryImpl extends BaseRepository implements BillItemRe
             }
             return results;
         }, startDate, endDate);
+    }
+
+    @Override
+    public List<ProductSalesSummary> getProductSalesSummaryByStoreType(LocalDate startDate, LocalDate endDate, StoreType storeType) {
+        String sql = """
+            SELECT bi.product_code, p.product_name,
+                   SUM(bi.quantity) as total_quantity,
+                   SUM(bi.line_total) as total_revenue
+            FROM bill_item bi
+            JOIN product p ON bi.product_code = p.product_code
+            JOIN bill b ON bi.bill_id = b.bill_id
+            WHERE DATE(b.bill_date) BETWEEN ? AND ? AND b.store_type = ?
+            GROUP BY bi.product_code, p.product_name
+            ORDER BY p.product_name
+            """;
+
+        return executeQuery(sql, rs -> {
+            List<ProductSalesSummary> results = new ArrayList<>();
+            while (rs.next()) {
+                results.add(new ProductSalesSummary(
+                    rs.getString("product_code"),
+                    rs.getString("product_name"),
+                    rs.getInt("total_quantity"),
+                    rs.getBigDecimal("total_revenue")
+                ));
+            }
+            return results;
+        }, startDate, endDate, storeType.name());
     }
 
     @Override

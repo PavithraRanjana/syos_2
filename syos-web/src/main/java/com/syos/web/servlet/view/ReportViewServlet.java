@@ -66,26 +66,49 @@ public class ReportViewServlet extends BaseViewServlet {
 
     private void showSalesReport(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String startDateStr = getStringParameter(request, "startDate", "");
-        String endDateStr = getStringParameter(request, "endDate", "");
+        String dateStr = getStringParameter(request, "date", "");
+        String storeTypeStr = getStringParameter(request, "storeType", "ALL");
 
-        LocalDate endDate = endDateStr.isEmpty() ? LocalDate.now() : LocalDate.parse(endDateStr);
-        LocalDate startDate = startDateStr.isEmpty() ? endDate.minusDays(30) : LocalDate.parse(startDateStr);
+        // Default to today if no date provided
+        LocalDate selectedDate = dateStr.isEmpty() ? LocalDate.now() : LocalDate.parse(dateStr);
 
-        // Daily sales report
-        List<DailySalesReport> dailyReport = reportService.getDailySalesReport(startDate, endDate);
-        request.setAttribute("dailyReport", dailyReport);
+        // Determine store type filter
+        StoreType storeTypeFilter = null;
+        if (!"ALL".equals(storeTypeStr)) {
+            storeTypeFilter = StoreType.valueOf(storeTypeStr);
+        }
 
-        // Sales by store type
-        List<StoreTypeSalesReport> storeTypeReport = reportService.getSalesByStoreType(startDate, endDate);
+        // Sales summary for the selected date
+        SalesSummary salesSummary;
+        List<ProductSalesReport> productSales;
+
+        if (storeTypeFilter != null) {
+            // Filtered by store type
+            salesSummary = reportService.getSalesSummaryByStoreType(selectedDate, storeTypeFilter);
+            productSales = reportService.getTopSellingProductsByStoreType(selectedDate, selectedDate, 100, storeTypeFilter);
+        } else {
+            // All stores combined
+            salesSummary = reportService.getSalesSummary(selectedDate);
+            productSales = reportService.getTopSellingProducts(selectedDate, selectedDate, 100);
+        }
+
+        request.setAttribute("salesSummary", salesSummary);
+        request.setAttribute("productSales", productSales);
+
+        // Sales by store type for the selected date (always show both for comparison)
+        List<StoreTypeSalesReport> storeTypeReport = reportService.getSalesByStoreType(selectedDate, selectedDate);
         request.setAttribute("storeTypeReport", storeTypeReport);
 
-        // Summary
-        SalesSummary salesSummary = reportService.getSalesSummaryForRange(startDate, endDate);
-        request.setAttribute("salesSummary", salesSummary);
+        // Top 5 selling products
+        List<ProductSalesReport> topProducts = productSales.size() > 5 ? productSales.subList(0, 5) : productSales;
+        request.setAttribute("topProducts", topProducts);
 
-        request.setAttribute("startDate", startDate);
-        request.setAttribute("endDate", endDate);
+        // Calculate totals
+        int totalQuantitySold = productSales.stream().mapToInt(ProductSalesReport::totalQuantitySold).sum();
+        request.setAttribute("totalQuantitySold", totalQuantitySold);
+
+        request.setAttribute("selectedDate", selectedDate);
+        request.setAttribute("selectedStoreType", storeTypeStr);
 
         setActiveNav(request, "reports");
         render(request, response, "reports/sales.jsp");
