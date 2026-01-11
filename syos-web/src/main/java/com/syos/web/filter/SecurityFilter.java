@@ -40,6 +40,7 @@ public class SecurityFilter implements Filter {
             "/api/auth/status",
             "/api/products",
             "/api/categories",
+            "/api/store-inventory/online", // Allow public stock check for online store
             "/shop");
 
     // Paths for CUSTOMER role (shopping)

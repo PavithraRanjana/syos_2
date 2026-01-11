@@ -214,6 +214,10 @@
                 let currentSubcategoryId = null;
                 let currentBrandId = null;
 
+                // Quantity tracking per product
+                let productQuantities = {};
+                let stockCache = {}; // Cache stock info to avoid repeated API calls
+
                 // Check authentication status
                 async function checkAuth() {
                     try {
@@ -553,7 +557,23 @@
                             <span class="text-lg font-bold text-syos-primary">\${product.unitPrice}</span>
                             <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">\${product.unitOfMeasure || 'PCS'}</span>
                         </div>
+                        
+                        <!-- Quantity Selector -->
+                        <div class="flex items-center justify-center gap-3 mb-3">
+                            <button onclick="adjustQuantity('\${product.productCode}', -1)" 
+                                class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-700 font-bold transition-colors">
+                                −
+                            </button>
+                            <span id="qty-\${product.productCode}" class="w-8 text-center font-semibold text-lg">1</span>
+                            <button onclick="adjustQuantity('\${product.productCode}', 1)" 
+                                class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-700 font-bold transition-colors">
+                                +
+                            </button>
+                        </div>
+                        <p id="stock-msg-\${product.productCode}" class="text-xs text-center text-gray-500 mb-2 h-4"></p>
+                        
                         <button onclick="addToCart('\${product.productCode}')"
+                                id="add-btn-\${product.productCode}"
                                 class="w-full bg-gradient-to-r from-syos-primary to-blue-600 text-white py-2.5 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center space-x-2 font-medium">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -563,6 +583,85 @@
                     </div>
                 </div>
             `).join('');
+
+                    // Initialize quantity trackers
+                    sortedProducts.forEach(p => {
+                        productQuantities[p.productCode] = 1;
+                    });
+                }
+
+                // Adjust quantity for a product
+                async function adjustQuantity(productCode, delta) {
+                    const currentQty = productQuantities[productCode] || 1;
+                    const newQty = currentQty + delta;
+
+                    // Enforce min 1 and max 10
+                    if (newQty < 1 || newQty > 10) {
+                        if (newQty > 10) {
+                            showStockMessage(productCode, 'Maximum 10 per order', 'warning');
+                        }
+                        return;
+                    }
+
+                    // Check online stock availability
+                    const stockAvailable = await checkStock(productCode, newQty);
+                    if (!stockAvailable) {
+                        return; // Message already shown by checkStock
+                    }
+
+                    // Update quantity
+                    productQuantities[productCode] = newQty;
+                    document.getElementById('qty-' + productCode).textContent = newQty;
+
+                    // Clear any previous messages if within limits
+                    if (newQty <= 10) {
+                        showStockMessage(productCode, '', '');
+                    }
+                }
+
+                // Check online stock for a product
+                async function checkStock(productCode, requestedQty) {
+                    try {
+                        // Check cache first
+                        if (!stockCache[productCode]) {
+                            const response = await fetch(ctx + '/api/store-inventory/online/' + productCode);
+                            const data = await response.json();
+                            if (data.success && data.data) {
+                                // Sum up all batch quantities
+                                const batches = data.data.batches || [];
+                                stockCache[productCode] = batches.reduce((sum, b) => sum + (b.quantity || 0), 0);
+                            } else {
+                                stockCache[productCode] = 0;
+                            }
+                        }
+
+                        const availableStock = stockCache[productCode];
+
+                        if (requestedQty > availableStock) {
+                            showStockMessage(productCode, 'Only ' + availableStock + ' in stock', 'error');
+                            return false;
+                        }
+
+                        return true;
+                    } catch (error) {
+                        console.error('Stock check failed:', error);
+                        return true; // Allow if check fails
+                    }
+                }
+
+                // Show stock message
+                function showStockMessage(productCode, message, type) {
+                    const msgEl = document.getElementById('stock-msg-' + productCode);
+                    if (msgEl) {
+                        msgEl.textContent = message;
+                        if (type === 'error') {
+                            msgEl.className = 'text-xs text-center text-red-500 mb-2 h-4';
+                        } else if (type === 'warning') {
+                            msgEl.className = 'text-xs text-center text-yellow-600 mb-2 h-4';
+                        } else {
+                            msgEl.className = 'text-xs text-center text-gray-500 mb-2 h-4';
+                        }
+                    }
                 }
 
                 async function addToCart(productCode) {
@@ -571,18 +670,31 @@
                         return;
                     }
 
+                    const quantity = productQuantities[productCode] || 1;
+
+                    // Final stock check before adding
+                    const stockAvailable = await checkStock(productCode, quantity);
+                    if (!stockAvailable) {
+                        return;
+                    }
+
                     try {
                         const response = await fetch(ctx + '/api/cart/items', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'same-origin',
-                            body: JSON.stringify({ productCode, quantity: 1 })
+                            body: JSON.stringify({ productCode, quantity: quantity })
                         });
 
                         const data = await response.json();
                         if (data.success) {
-                            showToast('Added to cart!');
+                            showToast('Added ' + quantity + ' to cart!');
                             updateCartBadge();
+                            // Reset quantity to 1 after successful add
+                            productQuantities[productCode] = 1;
+                            document.getElementById('qty-' + productCode).textContent = '1';
+                            // Clear stock cache to refresh on next increase
+                            delete stockCache[productCode];
                         } else {
                             showToast(data.error || 'Failed to add to cart', true);
                         }
