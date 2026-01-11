@@ -122,7 +122,7 @@
             <div id="subcategoryBar" class="bg-gray-100 border-b hidden">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex items-center gap-2 py-2 overflow-x-auto" id="subcategoryNav">
-                        <span class="text-sm text-gray-500 mr-2">Subcategories:</span>
+
                         <!-- Subcategories will be populated here -->
                     </div>
                 </div>
@@ -132,7 +132,7 @@
             <div id="brandBar" class="bg-white border-b hidden">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex items-center gap-2 py-2 overflow-x-auto" id="brandNav">
-                        <span class="text-sm text-gray-500 mr-2">Brands:</span>
+
                         <!-- Brands will be populated here -->
                     </div>
                 </div>
@@ -340,7 +340,7 @@
 
                 function renderSubcategoryNav() {
                     const nav = document.getElementById('subcategoryNav');
-                    nav.innerHTML = '<span class="text-sm text-gray-500 mr-2">Subcategories:</span>';
+                    nav.innerHTML = '';
 
                     // Add "All" option
                     const allBtn = document.createElement('button');
@@ -406,7 +406,7 @@
 
                 function renderBrandNav() {
                     const nav = document.getElementById('brandNav');
-                    nav.innerHTML = '<span class="text-sm text-gray-500 mr-2">Brands:</span>';
+                    nav.innerHTML = '';
 
                     // Add "All" option
                     const allBtn = document.createElement('button');
@@ -492,9 +492,9 @@
 
                         if (search) {
                             url = ctx + '/api/products/search?q=' + encodeURIComponent(search);
-                        } else if (currentBrandId) {
-                            url = ctx + '/api/products?brandId=' + currentBrandId;
                         } else if (currentSubcategoryId) {
+                            // When subcategory is selected, fetch by subcategory
+                            // Brand filtering will be done client-side
                             url = ctx + '/api/products?subcategoryId=' + currentSubcategoryId;
                         } else if (currentCategoryId) {
                             url = ctx + '/api/products?categoryId=' + currentCategoryId;
@@ -502,7 +502,14 @@
 
                         const response = await fetch(url);
                         const data = await response.json();
-                        products = data.data?.products || [];
+                        let fetchedProducts = data.data?.products || [];
+
+                        // Apply client-side brand filter if brand is selected
+                        if (currentBrandId && currentSubcategoryId) {
+                            fetchedProducts = fetchedProducts.filter(p => p.brandId === currentBrandId);
+                        }
+
+                        products = fetchedProducts;
 
                         document.getElementById('loadingState').classList.add('hidden');
                         document.getElementById('productCount').textContent = products.length + ' products found';

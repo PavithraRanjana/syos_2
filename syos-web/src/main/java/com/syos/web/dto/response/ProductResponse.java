@@ -11,8 +11,11 @@ public class ProductResponse {
 
     private String productCode;
     private String productName;
+    private Integer categoryId;
     private String categoryName;
+    private Integer subcategoryId;
     private String subcategoryName;
+    private Integer brandId;
     private String brandName;
     private BigDecimal unitPrice;
     private String unitOfMeasure;
@@ -32,13 +35,14 @@ public class ProductResponse {
         ProductResponse response = new ProductResponse();
         response.productCode = product.getProductCodeString();
         response.productName = product.getProductName();
+        response.categoryId = product.getCategoryId();
         response.categoryName = product.getCategoryName();
+        response.subcategoryId = product.getSubcategoryId();
         response.subcategoryName = product.getSubcategoryName();
+        response.brandId = product.getBrandId();
         response.brandName = product.getBrandName();
-        response.unitPrice = product.getUnitPrice() != null ?
-            product.getUnitPrice().getAmount() : null;
-        response.unitOfMeasure = product.getUnitOfMeasure() != null ?
-            product.getUnitOfMeasure().getSymbol() : null;
+        response.unitPrice = product.getUnitPrice() != null ? product.getUnitPrice().getAmount() : null;
+        response.unitOfMeasure = product.getUnitOfMeasure() != null ? product.getUnitOfMeasure().getSymbol() : null;
         response.description = product.getDescription();
         response.active = product.isActive();
         response.minPhysicalStock = product.getMinPhysicalStock();
@@ -79,6 +83,30 @@ public class ProductResponse {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public Integer getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Integer categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public Integer getSubcategoryId() {
+        return subcategoryId;
+    }
+
+    public void setSubcategoryId(Integer subcategoryId) {
+        this.subcategoryId = subcategoryId;
+    }
+
+    public Integer getBrandId() {
+        return brandId;
+    }
+
+    public void setBrandId(Integer brandId) {
+        this.brandId = brandId;
     }
 
     public String getSubcategoryName() {
