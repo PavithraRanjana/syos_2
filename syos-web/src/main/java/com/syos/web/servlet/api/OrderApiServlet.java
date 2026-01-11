@@ -19,14 +19,14 @@ import java.util.Map;
  * REST API servlet for order operations.
  *
  * Endpoints:
- * GET    /api/orders              - Get customer's orders
- * GET    /api/orders/{id}         - Get order by ID
- * POST   /api/orders              - Create order from cart
- * PUT    /api/orders/{id}/cancel  - Cancel order
- * PUT    /api/orders/{id}/shipping - Update shipping address
- * GET    /api/orders/stats        - Get order statistics
+ * GET /api/orders - Get customer's orders
+ * GET /api/orders/{id} - Get order by ID
+ * POST /api/orders - Create order from cart
+ * PUT /api/orders/{id}/cancel - Cancel order
+ * PUT /api/orders/{id}/shipping - Update shipping address
+ * GET /api/orders/stats - Get order statistics
  */
-@WebServlet(urlPatterns = {"/api/orders", "/api/orders/*"})
+@WebServlet(urlPatterns = { "/api/orders", "/api/orders/*" })
 public class OrderApiServlet extends BaseApiServlet {
 
     private OrderService orderService;
@@ -143,16 +143,16 @@ public class OrderApiServlet extends BaseApiServlet {
         List<Order> orders = orderService.findByCustomerId(customerId);
 
         List<Map<String, Object>> orderList = orders.stream()
-            .map(this::toOrderSummaryResponse)
-            .toList();
+                .map(this::toOrderSummaryResponse)
+                .toList();
 
         sendSuccess(response, Map.of(
-            "orders", orderList,
-            "count", orders.size()
-        ));
+                "orders", orderList,
+                "count", orders.size()));
     }
 
-    private void handleGetOrder(Integer customerId, String orderIdStr, HttpServletResponse response) throws IOException {
+    private void handleGetOrder(Integer customerId, String orderIdStr, HttpServletResponse response)
+            throws IOException {
         try {
             int orderId = Integer.parseInt(orderIdStr);
             Order order = orderService.findById(orderId).orElse(null);
@@ -179,15 +179,14 @@ public class OrderApiServlet extends BaseApiServlet {
         OrderService.OrderStats stats = orderService.getCustomerOrderStats(customerId);
 
         sendSuccess(response, Map.of(
-            "totalOrders", stats.totalOrders(),
-            "pendingOrders", stats.pendingOrders(),
-            "completedOrders", stats.completedOrders(),
-            "cancelledOrders", stats.cancelledOrders()
-        ));
+                "totalOrders", stats.totalOrders(),
+                "pendingOrders", stats.pendingOrders(),
+                "completedOrders", stats.completedOrders(),
+                "cancelledOrders", stats.cancelledOrders()));
     }
 
     private void handleCreateOrder(Integer customerId, HttpServletRequest request,
-                                    HttpServletResponse response) throws IOException {
+            HttpServletResponse response) throws IOException {
         CreateOrderRequest createRequest = parseRequestBody(request, CreateOrderRequest.class);
 
         OrderService.OrderRequest orderRequest = null;
@@ -202,11 +201,10 @@ public class OrderApiServlet extends BaseApiServlet {
             }
 
             orderRequest = new OrderService.OrderRequest(
-                createRequest.shippingAddress,
-                createRequest.shippingPhone,
-                createRequest.shippingNotes,
-                paymentMethod
-            );
+                    createRequest.shippingAddress,
+                    createRequest.shippingPhone,
+                    createRequest.shippingNotes,
+                    paymentMethod);
         }
 
         Order order = orderService.createOrderFromCart(customerId, orderRequest);
@@ -218,7 +216,7 @@ public class OrderApiServlet extends BaseApiServlet {
     }
 
     private void handleCancelOrder(Integer orderId, HttpServletRequest request,
-                                    HttpServletResponse response) throws IOException {
+            HttpServletResponse response) throws IOException {
         CancelOrderRequest cancelRequest = parseRequestBody(request, CancelOrderRequest.class);
         String reason = cancelRequest != null ? cancelRequest.reason : null;
 
@@ -230,7 +228,7 @@ public class OrderApiServlet extends BaseApiServlet {
     }
 
     private void handleUpdateShipping(Integer orderId, HttpServletRequest request,
-                                       HttpServletResponse response) throws IOException {
+            HttpServletResponse response) throws IOException {
         UpdateShippingRequest shippingRequest = parseRequestBody(request, UpdateShippingRequest.class);
 
         if (shippingRequest == null) {
@@ -239,67 +237,60 @@ public class OrderApiServlet extends BaseApiServlet {
         }
 
         Order order = orderService.updateShippingAddress(
-            orderId,
-            shippingRequest.shippingAddress,
-            shippingRequest.shippingPhone
-        );
+                orderId,
+                shippingRequest.shippingAddress,
+                shippingRequest.shippingPhone);
 
         sendSuccess(response, toOrderSummaryResponse(order), "Shipping address updated");
     }
 
     private Map<String, Object> toOrderSummaryResponse(Order order) {
         return Map.of(
-            "orderId", order.getOrderId(),
-            "orderNumber", order.getOrderNumber(),
-            "status", order.getStatus().name(),
-            "statusDisplay", order.getStatus().getDisplayName(),
-            "totalAmount", order.getTotalAmount().toString(),
-            "itemCount", order.getTotalItemCount(),
-            "orderDate", order.getOrderDate().toString(),
-            "canCancel", order.canCancel()
-        );
+                "orderId", order.getOrderId(),
+                "orderNumber", order.getOrderNumber(),
+                "status", order.getStatus().name(),
+                "statusDisplay", order.getStatus().getDisplayName(),
+                "totalAmount", order.getTotalAmount().getAmount().toString(),
+                "itemCount", order.getTotalItemCount(),
+                "orderDate", order.getOrderDate().toString(),
+                "canCancel", order.canCancel());
     }
 
     private Map<String, Object> toOrderDetailResponse(Order order) {
         List<Map<String, Object>> items = order.getItems().stream()
-            .map(this::toOrderItemResponse)
-            .toList();
+                .map(this::toOrderItemResponse)
+                .toList();
 
         return Map.ofEntries(
-            Map.entry("orderId", order.getOrderId()),
-            Map.entry("orderNumber", order.getOrderNumber()),
-            Map.entry("status", order.getStatus().name()),
-            Map.entry("statusDisplay", order.getStatus().getDisplayName()),
-            Map.entry("statusDescription", order.getStatus().getDescription()),
-            Map.entry("paymentMethod", order.getPaymentMethod() != null ?
-                order.getPaymentMethod().name() : "ONLINE"),
-            Map.entry("shippingAddress", order.getShippingAddress() != null ?
-                order.getShippingAddress() : ""),
-            Map.entry("shippingPhone", order.getShippingPhone() != null ?
-                order.getShippingPhone() : ""),
-            Map.entry("shippingNotes", order.getShippingNotes() != null ?
-                order.getShippingNotes() : ""),
-            Map.entry("subtotal", order.getSubtotal().toString()),
-            Map.entry("shippingFee", order.getShippingFee().toString()),
-            Map.entry("discountAmount", order.getDiscountAmount().toString()),
-            Map.entry("taxAmount", order.getTaxAmount().toString()),
-            Map.entry("totalAmount", order.getTotalAmount().toString()),
-            Map.entry("items", items),
-            Map.entry("itemCount", order.getTotalItemCount()),
-            Map.entry("orderDate", order.getOrderDate().toString()),
-            Map.entry("canCancel", order.canCancel()),
-            Map.entry("isComplete", order.isComplete())
-        );
+                Map.entry("orderId", order.getOrderId()),
+                Map.entry("orderNumber", order.getOrderNumber()),
+                Map.entry("status", order.getStatus().name()),
+                Map.entry("statusDisplay", order.getStatus().getDisplayName()),
+                Map.entry("statusDescription", order.getStatus().getDescription()),
+                Map.entry("paymentMethod",
+                        order.getPaymentMethod() != null ? order.getPaymentMethod().name() : "ONLINE"),
+                Map.entry("shippingAddress", order.getShippingAddress() != null ? order.getShippingAddress() : ""),
+                Map.entry("shippingPhone", order.getShippingPhone() != null ? order.getShippingPhone() : ""),
+                Map.entry("shippingNotes", order.getShippingNotes() != null ? order.getShippingNotes() : ""),
+                Map.entry("subtotal", order.getSubtotal().getAmount().toString()),
+                Map.entry("shippingFee", order.getShippingFee().getAmount().toString()),
+                Map.entry("discountAmount", order.getDiscountAmount().getAmount().toString()),
+                Map.entry("taxAmount", order.getTaxAmount().getAmount().toString()),
+                Map.entry("totalAmount", order.getTotalAmount().getAmount().toString()),
+                Map.entry("items", items),
+                Map.entry("itemCount", order.getTotalItemCount()),
+                Map.entry("orderDate", order.getOrderDate().toString()),
+                Map.entry("canCancel", order.canCancel()),
+                Map.entry("isComplete", order.isComplete()));
     }
 
     private Map<String, Object> toOrderItemResponse(OrderItem item) {
         return Map.of(
-            "productCode", item.getProductCodeString(),
-            "productName", item.getProductName(),
-            "quantity", item.getQuantity(),
-            "unitPrice", item.getUnitPrice().toString(),
-            "lineTotal", item.getLineTotal().toString()
-        );
+                "productCode", item.getProductCodeString(),
+                "productName", item.getProductName(),
+                "quantity", item.getQuantity(),
+                "unitPrice", item.getUnitPrice().getAmount().toString(),
+                "lineTotal", item.getLineTotal().getAmount().toString());
     }
 
     // ==================== Request DTOs ====================

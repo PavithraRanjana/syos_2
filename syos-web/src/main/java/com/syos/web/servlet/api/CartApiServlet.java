@@ -17,14 +17,14 @@ import java.util.Map;
  * REST API servlet for shopping cart operations.
  *
  * Endpoints:
- * GET    /api/cart           - Get current cart
- * POST   /api/cart/items     - Add item to cart
- * PUT    /api/cart/items/{productCode} - Update item quantity
+ * GET /api/cart - Get current cart
+ * POST /api/cart/items - Add item to cart
+ * PUT /api/cart/items/{productCode} - Update item quantity
  * DELETE /api/cart/items/{productCode} - Remove item from cart
- * DELETE /api/cart           - Clear cart
- * GET    /api/cart/validate  - Validate cart stock
+ * DELETE /api/cart - Clear cart
+ * GET /api/cart/validate - Validate cart stock
  */
-@WebServlet(urlPatterns = {"/api/cart", "/api/cart/*"})
+@WebServlet(urlPatterns = { "/api/cart", "/api/cart/*" })
 public class CartApiServlet extends BaseApiServlet {
 
     private CartService cartService;
@@ -159,20 +159,19 @@ public class CartApiServlet extends BaseApiServlet {
             sendSuccess(response, Map.of("valid", true, "issues", List.of()));
         } else {
             List<Map<String, Object>> issues = result.issues().stream()
-                .map(issue -> Map.<String, Object>of(
-                    "productCode", issue.productCode(),
-                    "productName", issue.productName(),
-                    "requested", issue.requestedQuantity(),
-                    "available", issue.availableQuantity()
-                ))
-                .toList();
+                    .map(issue -> Map.<String, Object>of(
+                            "productCode", issue.productCode(),
+                            "productName", issue.productName(),
+                            "requested", issue.requestedQuantity(),
+                            "available", issue.availableQuantity()))
+                    .toList();
 
             sendSuccess(response, Map.of("valid", false, "issues", issues));
         }
     }
 
     private void handleAddItem(Integer customerId, HttpServletRequest request,
-                                HttpServletResponse response) throws IOException {
+            HttpServletResponse response) throws IOException {
         AddItemRequest addRequest = parseRequestBody(request, AddItemRequest.class);
 
         if (addRequest == null || addRequest.productCode == null) {
@@ -195,7 +194,7 @@ public class CartApiServlet extends BaseApiServlet {
     }
 
     private void handleUpdateItem(Integer customerId, String productCode,
-                                   HttpServletRequest request, HttpServletResponse response) throws IOException {
+            HttpServletRequest request, HttpServletResponse response) throws IOException {
         UpdateItemRequest updateRequest = parseRequestBody(request, UpdateItemRequest.class);
 
         if (updateRequest == null || updateRequest.quantity == null) {
@@ -211,7 +210,7 @@ public class CartApiServlet extends BaseApiServlet {
     }
 
     private void handleRemoveItem(Integer customerId, String productCode,
-                                   HttpServletResponse response) throws IOException {
+            HttpServletResponse response) throws IOException {
         Cart cart = cartService.removeItem(customerId, productCode);
 
         logger.info("Removed {} from cart for customer {}", productCode, customerId);
@@ -225,30 +224,28 @@ public class CartApiServlet extends BaseApiServlet {
         logger.info("Cleared cart for customer {}", customerId);
 
         sendSuccess(response, Map.of("items", List.of(), "itemCount", 0, "totalQuantity", 0, "subtotal", "0.00"),
-            "Cart cleared");
+                "Cart cleared");
     }
 
     private Map<String, Object> toCartResponse(Cart cart) {
         List<Map<String, Object>> items = cart.getItems().stream()
-            .map(this::toCartItemResponse)
-            .toList();
+                .map(this::toCartItemResponse)
+                .toList();
 
         return Map.of(
-            "items", items,
-            "itemCount", cart.getItemCount(),
-            "totalQuantity", cart.getTotalQuantity(),
-            "subtotal", cart.getSubtotal().toString()
-        );
+                "items", items,
+                "itemCount", cart.getItemCount(),
+                "totalQuantity", cart.getTotalQuantity(),
+                "subtotal", cart.getSubtotal().getAmount().toString());
     }
 
     private Map<String, Object> toCartItemResponse(CartItem item) {
         return Map.of(
-            "productCode", item.getProductCodeString(),
-            "productName", item.getProductName(),
-            "unitPrice", item.getUnitPrice().toString(),
-            "quantity", item.getQuantity(),
-            "lineTotal", item.getLineTotal().toString()
-        );
+                "productCode", item.getProductCodeString(),
+                "productName", item.getProductName(),
+                "unitPrice", item.getUnitPrice().getAmount().toString(),
+                "quantity", item.getQuantity(),
+                "lineTotal", item.getLineTotal().getAmount().toString());
     }
 
     // ==================== Request DTOs ====================
