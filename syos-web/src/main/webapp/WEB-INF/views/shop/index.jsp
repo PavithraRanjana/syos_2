@@ -544,8 +544,8 @@
                     }
 
                     grid.innerHTML = sortedProducts.map(product => `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-                    <div class="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1" id="card-\${product.productCode}">
+                    <div class="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center relative">
                         <svg class="h-20 w-20 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
@@ -558,8 +558,13 @@
                             <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">\${product.unitOfMeasure || 'PCS'}</span>
                         </div>
                         
-                        <!-- Quantity Selector -->
-                        <div class="flex items-center justify-center gap-3 mb-3">
+                        <!-- Out of Stock Badge (hidden by default) -->
+                        <div id="oos-badge-\${product.productCode}" class="hidden mb-3 flex justify-center">
+                            <span class="bg-red-50 text-red-700 px-4 py-1.5 rounded-full text-sm font-medium">Out of Stock</span>
+                        </div>
+                        
+                        <!-- Quantity Selector (will be hidden when out of stock) -->
+                        <div id="qty-controls-\${product.productCode}" class="flex items-center justify-center gap-3 mb-3">
                             <button onclick="adjustQuantity('\${product.productCode}', -1)" 
                                 class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-700 font-bold transition-colors">
                                 −
@@ -584,10 +589,44 @@
                 </div>
             `).join('');
 
-                    // Initialize quantity trackers
+                    // Initialize quantity trackers and check stock for each product
                     sortedProducts.forEach(p => {
                         productQuantities[p.productCode] = 1;
+                        checkStockAndUpdateUI(p.productCode);
                     });
+                }
+
+                // Check stock and update UI for out of stock products
+                async function checkStockAndUpdateUI(productCode) {
+                    try {
+                        const response = await fetch(ctx + '/api/store-inventory/online/' + productCode);
+                        const data = await response.json();
+                        let totalStock = 0;
+
+                        if (data.success && data.data) {
+                            const batches = data.data.batches || [];
+                            totalStock = batches.reduce((sum, b) => sum + (b.quantity || 0), 0);
+                        }
+
+                        stockCache[productCode] = totalStock;
+
+                        if (totalStock === 0) {
+                            // Show out of stock indicator
+                            const badge = document.getElementById('oos-badge-' + productCode);
+                            const qtyControls = document.getElementById('qty-controls-' + productCode);
+                            const addBtn = document.getElementById('add-btn-' + productCode);
+
+                            if (badge) badge.classList.remove('hidden');
+                            if (qtyControls) qtyControls.classList.add('hidden');
+                            if (addBtn) {
+                                addBtn.disabled = true;
+                                addBtn.className = 'w-full bg-gray-400 text-white py-2.5 px-4 rounded-lg cursor-not-allowed flex items-center justify-center space-x-2 font-medium';
+                                addBtn.innerHTML = '<span>Out of Stock</span>';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Stock check failed for', productCode, error);
+                    }
                 }
 
                 // Adjust quantity for a product
