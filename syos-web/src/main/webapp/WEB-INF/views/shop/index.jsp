@@ -23,10 +23,35 @@
                     }
                 }
             </script>
+            <style>
+                .category-btn {
+                    transition: all 0.2s ease;
+                }
+
+                .category-btn:hover {
+                    transform: translateY(-2px);
+                }
+
+                .category-btn.active {
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                    color: white;
+                    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+                }
+
+                .subcategory-btn.active {
+                    background: #2563eb;
+                    color: white;
+                }
+
+                .brand-chip.active {
+                    background: #7c3aed;
+                    color: white;
+                }
+            </style>
         </head>
 
         <body class="bg-gray-50 min-h-screen">
-            <!-- Navigation -->
+            <!-- Top Navigation Bar -->
             <nav class="bg-white shadow-sm sticky top-0 z-50">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
@@ -41,7 +66,6 @@
                                 </div>
                                 <span class="ml-2 text-xl font-bold text-gray-900">SYOS Shop</span>
                             </a>
-                            <div id="headerReportsBtn" class="ml-6 hidden hover:scale-105 transition-transform"></div>
                         </div>
 
                         <div class="flex items-center space-x-4">
@@ -81,22 +105,56 @@
                 </div>
             </nav>
 
+            <!-- Category Navigation Bar (Line 1) -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 shadow-md">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center gap-2 py-3 overflow-x-auto" id="categoryNav">
+                        <button onclick="selectCategory(null)" id="categoryAll"
+                            class="category-btn px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium whitespace-nowrap active">
+                            All Products
+                        </button>
+                        <!-- Categories will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subcategory Navigation Bar (Line 2) - Hidden initially -->
+            <div id="subcategoryBar" class="bg-gray-100 border-b hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center gap-2 py-2 overflow-x-auto" id="subcategoryNav">
+                        <span class="text-sm text-gray-500 mr-2">Subcategories:</span>
+                        <!-- Subcategories will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Brand Filter Bar (Line 3) - Hidden initially -->
+            <div id="brandBar" class="bg-white border-b hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center gap-2 py-2 overflow-x-auto" id="brandNav">
+                        <span class="text-sm text-gray-500 mr-2">Brands:</span>
+                        <!-- Brands will be populated here -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Main Content -->
             <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <!-- Page Header -->
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-900">Shop Our Products</h1>
-                    <p class="mt-2 text-gray-600">Browse our selection of quality grocery items</p>
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="mb-6 hidden">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm text-gray-500">Active filters:</span>
+                        <div id="filterTags" class="flex gap-2 flex-wrap"></div>
+                        <button onclick="clearAllFilters()" class="text-sm text-red-600 hover:text-red-700 ml-2">Clear
+                            all</button>
+                    </div>
                 </div>
 
-                <!-- Filters -->
-                <div class="flex flex-col md:flex-row gap-4 mb-8">
-                    <select id="categoryFilter"
-                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-syos-primary focus:border-syos-primary">
-                        <option value="">All Categories</option>
-                    </select>
+                <!-- Sort Options -->
+                <div class="flex items-center justify-between mb-6">
+                    <p id="productCount" class="text-gray-600">Loading products...</p>
                     <select id="sortFilter"
-                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-syos-primary focus:border-syos-primary">
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-syos-primary">
                         <option value="name">Sort by Name</option>
                         <option value="price-low">Price: Low to High</option>
                         <option value="price-high">Price: High to Low</option>
@@ -127,7 +185,7 @@
                             d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                     <h3 class="mt-2 text-lg font-medium text-gray-900">No products found</h3>
-                    <p class="mt-1 text-gray-500">Try adjusting your search or filter criteria.</p>
+                    <p class="mt-1 text-gray-500">Try adjusting your filters or search criteria.</p>
                 </div>
             </main>
 
@@ -143,17 +201,23 @@
             <script>
                 const ctx = '${pageContext.request.contextPath}';
                 let products = [];
+                let allProducts = [];
                 let categories = [];
+                let subcategories = [];
+                let brands = [];
                 let isAuthenticated = false;
                 let userRole = null;
                 let userName = null;
 
+                // Current filter state
+                let currentCategoryId = null;
+                let currentSubcategoryId = null;
+                let currentBrandId = null;
+
                 // Check authentication status
                 async function checkAuth() {
                     try {
-                        const response = await fetch(ctx + '/api/auth/status', {
-                            credentials: 'same-origin'
-                        });
+                        const response = await fetch(ctx + '/api/auth/status', { credentials: 'same-origin' });
                         const data = await response.json();
                         isAuthenticated = data.data?.authenticated || false;
                         userRole = data.data?.role || null;
@@ -169,35 +233,18 @@
                     const userMenu = document.getElementById('userMenu');
                     if (isAuthenticated) {
                         let menuHtml = '<span class="text-sm text-gray-600">' + (userName || 'User') + '</span>';
-
-                        // Show My Orders link for customers
                         if (userRole === 'CUSTOMER') {
                             menuHtml += '<a href="' + ctx + '/orders" class="text-gray-600 hover:text-syos-primary">My Orders</a>';
                         }
-
-                        // Show POS link for cashiers
                         if (userRole === 'CASHIER') {
                             menuHtml += '<a href="' + ctx + '/pos" class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600">Go to POS</a>';
                         }
-
-                        if (userRole === 'MANAGER') {
-                            // Update Reports button in header
-                            const headerReportsBtn = document.getElementById('headerReportsBtn');
-                            if (headerReportsBtn) {
-                                headerReportsBtn.innerHTML = '<a href="' + ctx + '/reports" class="bg-green-600 text-white hover:bg-green-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">Reports</a>';
-                                headerReportsBtn.classList.remove('hidden');
-                            }
-                        }
-
-                        // Logout button for all users
                         menuHtml += '<button onclick="logout()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">Logout</button>';
-
                         userMenu.innerHTML = menuHtml;
                     }
                 }
 
                 function logout() {
-                    // Use form submission for reliable logout
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = ctx + '/logout';
@@ -208,9 +255,7 @@
                 async function updateCartBadge() {
                     if (!isAuthenticated) return;
                     try {
-                        const response = await fetch(ctx + '/api/cart/count', {
-                            credentials: 'same-origin'
-                        });
+                        const response = await fetch(ctx + '/api/cart/count', { credentials: 'same-origin' });
                         const data = await response.json();
                         const badge = document.getElementById('cartBadge');
                         const count = data.data?.count || 0;
@@ -231,38 +276,236 @@
                         const response = await fetch(ctx + '/api/categories');
                         const data = await response.json();
                         categories = data.data?.categories || [];
-                        populateCategoryFilter();
+                        renderCategoryNav();
                     } catch (error) {
                         console.error('Failed to load categories:', error);
                     }
                 }
 
-                function populateCategoryFilter() {
-                    const select = document.getElementById('categoryFilter');
+                function renderCategoryNav() {
+                    const nav = document.getElementById('categoryNav');
+                    const allBtn = document.getElementById('categoryAll');
+
                     categories.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.categoryId;
-                        option.textContent = cat.categoryName;
-                        select.appendChild(option);
+                        const btn = document.createElement('button');
+                        btn.id = 'category' + cat.categoryId;
+                        btn.className = 'category-btn px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium whitespace-nowrap';
+                        btn.textContent = cat.categoryName;
+                        btn.onclick = () => selectCategory(cat.categoryId, cat.categoryName);
+                        nav.appendChild(btn);
                     });
                 }
 
+                // Select category
+                async function selectCategory(categoryId, categoryName = null) {
+                    currentCategoryId = categoryId;
+                    currentSubcategoryId = null;
+                    currentBrandId = null;
+
+                    // Update category buttons
+                    document.querySelectorAll('#categoryNav button').forEach(btn => btn.classList.remove('active'));
+                    if (categoryId) {
+                        document.getElementById('category' + categoryId)?.classList.add('active');
+                    } else {
+                        document.getElementById('categoryAll')?.classList.add('active');
+                    }
+
+                    // Load subcategories if category selected
+                    if (categoryId) {
+                        await loadSubcategories(categoryId);
+                        document.getElementById('subcategoryBar').classList.remove('hidden');
+                    } else {
+                        document.getElementById('subcategoryBar').classList.add('hidden');
+                    }
+
+                    // Hide brand bar when category changes
+                    document.getElementById('brandBar').classList.add('hidden');
+
+                    // Load products
+                    await loadProducts();
+                    updateFilterTags();
+                }
+
+                // Load subcategories
+                async function loadSubcategories(categoryId) {
+                    try {
+                        const response = await fetch(ctx + '/api/categories/' + categoryId + '/subcategories');
+                        const data = await response.json();
+                        subcategories = data.data?.subcategories || [];
+                        renderSubcategoryNav();
+                    } catch (error) {
+                        console.error('Failed to load subcategories:', error);
+                    }
+                }
+
+                function renderSubcategoryNav() {
+                    const nav = document.getElementById('subcategoryNav');
+                    nav.innerHTML = '<span class="text-sm text-gray-500 mr-2">Subcategories:</span>';
+
+                    // Add "All" option
+                    const allBtn = document.createElement('button');
+                    allBtn.id = 'subcategoryAll';
+                    allBtn.className = 'subcategory-btn px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full text-sm font-medium whitespace-nowrap active';
+                    allBtn.textContent = 'All';
+                    allBtn.onclick = () => selectSubcategory(null);
+                    nav.appendChild(allBtn);
+
+                    subcategories.forEach(sub => {
+                        const btn = document.createElement('button');
+                        btn.id = 'subcategory' + sub.subcategoryId;
+                        btn.className = 'subcategory-btn px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full text-sm font-medium whitespace-nowrap';
+                        btn.textContent = sub.subcategoryName;
+                        btn.onclick = () => selectSubcategory(sub.subcategoryId, sub.subcategoryName);
+                        nav.appendChild(btn);
+                    });
+                }
+
+                // Select subcategory
+                async function selectSubcategory(subcategoryId, subcategoryName = null) {
+                    currentSubcategoryId = subcategoryId;
+                    currentBrandId = null;
+
+                    // Update subcategory buttons
+                    document.querySelectorAll('#subcategoryNav button').forEach(btn => btn.classList.remove('active'));
+                    if (subcategoryId) {
+                        document.getElementById('subcategory' + subcategoryId)?.classList.add('active');
+                        // Show brands for this subcategory
+                        await loadBrandsForSubcategory(subcategoryId);
+                        document.getElementById('brandBar').classList.remove('hidden');
+                    } else {
+                        document.getElementById('subcategoryAll')?.classList.add('active');
+                        document.getElementById('brandBar').classList.add('hidden');
+                    }
+
+                    await loadProducts();
+                    updateFilterTags();
+                }
+
+                // Load brands based on products in subcategory
+                async function loadBrandsForSubcategory(subcategoryId) {
+                    try {
+                        // Get products for this subcategory to extract unique brands
+                        const response = await fetch(ctx + '/api/products?subcategoryId=' + subcategoryId);
+                        const data = await response.json();
+                        const prods = data.data?.products || [];
+
+                        // Extract unique brands from products
+                        const brandMap = new Map();
+                        prods.forEach(p => {
+                            if (p.brandId && p.brandName) {
+                                brandMap.set(p.brandId, p.brandName);
+                            }
+                        });
+
+                        brands = Array.from(brandMap.entries()).map(([id, name]) => ({ brandId: id, brandName: name }));
+                        renderBrandNav();
+                    } catch (error) {
+                        console.error('Failed to load brands:', error);
+                    }
+                }
+
+                function renderBrandNav() {
+                    const nav = document.getElementById('brandNav');
+                    nav.innerHTML = '<span class="text-sm text-gray-500 mr-2">Brands:</span>';
+
+                    // Add "All" option
+                    const allBtn = document.createElement('button');
+                    allBtn.id = 'brandAll';
+                    allBtn.className = 'brand-chip px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full text-sm font-medium whitespace-nowrap active';
+                    allBtn.textContent = 'All Brands';
+                    allBtn.onclick = () => selectBrand(null);
+                    nav.appendChild(allBtn);
+
+                    brands.forEach(brand => {
+                        const btn = document.createElement('button');
+                        btn.id = 'brand' + brand.brandId;
+                        btn.className = 'brand-chip px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full text-sm font-medium whitespace-nowrap';
+                        btn.textContent = brand.brandName;
+                        btn.onclick = () => selectBrand(brand.brandId, brand.brandName);
+                        nav.appendChild(btn);
+                    });
+                }
+
+                // Select brand
+                async function selectBrand(brandId, brandName = null) {
+                    currentBrandId = brandId;
+
+                    // Update brand buttons
+                    document.querySelectorAll('#brandNav button').forEach(btn => btn.classList.remove('active'));
+                    if (brandId) {
+                        document.getElementById('brand' + brandId)?.classList.add('active');
+                    } else {
+                        document.getElementById('brandAll')?.classList.add('active');
+                    }
+
+                    await loadProducts();
+                    updateFilterTags();
+                }
+
+                // Update filter tags display
+                function updateFilterTags() {
+                    const container = document.getElementById('activeFilters');
+                    const tagsDiv = document.getElementById('filterTags');
+
+                    if (!currentCategoryId && !currentSubcategoryId && !currentBrandId) {
+                        container.classList.add('hidden');
+                        return;
+                    }
+
+                    container.classList.remove('hidden');
+                    tagsDiv.innerHTML = '';
+
+                    if (currentCategoryId) {
+                        const cat = categories.find(c => c.categoryId === currentCategoryId);
+                        if (cat) {
+                            tagsDiv.innerHTML += `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">${cat.categoryName}</span>`;
+                        }
+                    }
+
+                    if (currentSubcategoryId) {
+                        const sub = subcategories.find(s => s.subcategoryId === currentSubcategoryId);
+                        if (sub) {
+                            tagsDiv.innerHTML += `<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">${sub.subcategoryName}</span>`;
+                        }
+                    }
+
+                    if (currentBrandId) {
+                        const brand = brands.find(b => b.brandId === currentBrandId);
+                        if (brand) {
+                            tagsDiv.innerHTML += `<span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">${brand.brandName}</span>`;
+                        }
+                    }
+                }
+
+                function clearAllFilters() {
+                    selectCategory(null);
+                }
+
                 // Load products
-                async function loadProducts(categoryId = '', search = '') {
+                async function loadProducts(search = '') {
                     document.getElementById('loadingState').classList.remove('hidden');
                     document.getElementById('emptyState').classList.add('hidden');
                     document.getElementById('productsGrid').innerHTML = '';
 
                     try {
                         let url = ctx + '/api/products?active=true';
-                        if (categoryId) url += '&categoryId=' + categoryId;
-                        if (search) url = ctx + '/api/products/search?q=' + encodeURIComponent(search);
+
+                        if (search) {
+                            url = ctx + '/api/products/search?q=' + encodeURIComponent(search);
+                        } else if (currentBrandId) {
+                            url = ctx + '/api/products?brandId=' + currentBrandId;
+                        } else if (currentSubcategoryId) {
+                            url = ctx + '/api/products?subcategoryId=' + currentSubcategoryId;
+                        } else if (currentCategoryId) {
+                            url = ctx + '/api/products?categoryId=' + currentCategoryId;
+                        }
 
                         const response = await fetch(url);
                         const data = await response.json();
                         products = data.data?.products || [];
 
                         document.getElementById('loadingState').classList.add('hidden');
+                        document.getElementById('productCount').textContent = products.length + ' products found';
 
                         if (products.length === 0) {
                             document.getElementById('emptyState').classList.remove('hidden');
@@ -290,21 +533,21 @@
                     }
 
                     grid.innerHTML = sortedProducts.map(product => `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                    <div class="h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                        <svg class="h-20 w-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                    <div class="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                        <svg class="h-20 w-20 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
                     </div>
                     <div class="p-4">
-                        <p class="text-xs text-gray-500 mb-1">\${product.productCode}</p>
+                        <p class="text-xs text-gray-500 mb-1 font-mono">\${product.productCode}</p>
                         <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">\${product.productName}</h3>
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-lg font-bold text-syos-primary">\${product.unitPrice}</span>
-                            <span class="text-xs text-gray-500">\${product.unitOfMeasure || 'PCS'}</span>
+                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">\${product.unitOfMeasure || 'PCS'}</span>
                         </div>
                         <button onclick="addToCart('\${product.productCode}')"
-                                class="w-full bg-syos-primary text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                                class="w-full bg-gradient-to-r from-syos-primary to-blue-600 text-white py-2.5 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center space-x-2 font-medium">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
@@ -345,15 +588,11 @@
                     const toast = document.getElementById('toast');
                     const toastMessage = document.getElementById('toastMessage');
                     toastMessage.textContent = message;
-                    toast.className = `fixed bottom-4 right-4 \${isError ? 'bg-syos-danger' : 'bg-syos-success'} text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2`;
+                    toast.className = `fixed bottom-4 right-4 ${isError ? 'bg-syos-danger' : 'bg-syos-success'} text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2`;
                     setTimeout(() => toast.classList.add('hidden'), 3000);
                 }
 
                 // Event listeners
-                document.getElementById('categoryFilter').addEventListener('change', (e) => {
-                    loadProducts(e.target.value);
-                });
-
                 document.getElementById('sortFilter').addEventListener('change', () => {
                     renderProducts();
                 });
@@ -362,7 +601,16 @@
                 document.getElementById('searchInput').addEventListener('input', (e) => {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(() => {
-                        loadProducts('', e.target.value);
+                        // Clear category filters when searching
+                        currentCategoryId = null;
+                        currentSubcategoryId = null;
+                        currentBrandId = null;
+                        document.querySelectorAll('#categoryNav button').forEach(btn => btn.classList.remove('active'));
+                        document.getElementById('categoryAll')?.classList.add('active');
+                        document.getElementById('subcategoryBar').classList.add('hidden');
+                        document.getElementById('brandBar').classList.add('hidden');
+                        updateFilterTags();
+                        loadProducts(e.target.value);
                     }, 300);
                 });
 
