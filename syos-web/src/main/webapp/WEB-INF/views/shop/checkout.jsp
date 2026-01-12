@@ -318,10 +318,11 @@
                     const container = document.getElementById('orderItems');
                     container.innerHTML = cart.items.map(item => `
                 <div class="flex items-center space-x-3">
-                    <div class="h-12 w-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
-                        <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
+                    <div class="h-12 w-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img src="${ctx}/static/images/products/\${item.productCode}.png" 
+                             alt="\${item.productName}"
+                             class="h-full w-full object-contain"
+                             onerror="this.onerror=null; this.parentElement.innerHTML='<svg class=\\'h-6 w-6 text-gray-400\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1\\' d=\\'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4\\'/></svg>';">
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate">\${item.productName}</p>
