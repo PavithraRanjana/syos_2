@@ -104,7 +104,7 @@
                 @apply text-gray-600 hover:text-syos-primary hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-medium transition-colors;
             }
             .nav-link-active {
-                @apply text-syos-primary bg-blue-50 px-3 py-2 rounded-md text-sm font-medium;
+                @apply text-syos-primary bg-blue-100 px-3 py-2 rounded-md text-sm font-bold border-b-2 border-syos-primary;
             }
         }
     </style>
@@ -137,7 +137,7 @@
                             <a href="${ctx}/pos" class="${activeNav == 'pos' ? 'nav-link-active' : 'nav-link'}">
                                 POS / Billing
                             </a>
-                            <a href="${ctx}/store-stock" class="${activeNav == 'store-stock' ? 'nav-link-active' : 'nav-link'}">
+                            <a href="${ctx}/pos/stock" class="${activeNav == 'pos-stock' ? 'nav-link-active' : 'nav-link'}">
                                 Store Stock
                             </a>
                         </c:if>
@@ -245,7 +245,7 @@
                 </c:if>
                 <c:if test="${sessionScope.userRole == 'CASHIER' or sessionScope.userRole == 'ADMIN'}">
                     <a href="${ctx}/pos" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">POS / Billing</a>
-                    <a href="${ctx}/store-stock" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Store Stock</a>
+                    <a href="${ctx}/pos/stock" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Store Stock</a>
                 </c:if>
                 <c:if test="${sessionScope.userRole == 'INVENTORY_MANAGER' or sessionScope.userRole == 'ADMIN'}">
                     <a href="${ctx}/inventory" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Inventory</a>

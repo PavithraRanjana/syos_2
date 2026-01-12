@@ -3,8 +3,10 @@ package com.syos.web.servlet.view;
 import com.syos.config.ServiceRegistry;
 import com.syos.domain.models.Bill;
 import com.syos.domain.models.BillItem;
+import com.syos.repository.interfaces.OnlineStoreInventoryRepository.ProductStockSummary;
 import com.syos.service.interfaces.BillingService;
 import com.syos.service.interfaces.ProductService;
+import com.syos.service.interfaces.StoreInventoryService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,17 +20,19 @@ import java.util.Optional;
 /**
  * Servlet for Point of Sale (POS) / Billing views.
  */
-@WebServlet(urlPatterns = {"/pos", "/pos/*"})
+@WebServlet(urlPatterns = { "/pos", "/pos/*" })
 public class POSServlet extends BaseViewServlet {
 
     private BillingService billingService;
     private ProductService productService;
+    private StoreInventoryService storeInventoryService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         billingService = ServiceRegistry.get(BillingService.class);
         productService = ServiceRegistry.get(ProductService.class);
+        storeInventoryService = ServiceRegistry.get(StoreInventoryService.class);
     }
 
     @Override
@@ -41,6 +45,8 @@ public class POSServlet extends BaseViewServlet {
                 showPOS(request, response);
             } else if (pathInfo.equals("/new")) {
                 showNewBillForm(request, response);
+            } else if (pathInfo.equals("/stock")) {
+                showStock(request, response);
             } else if (pathInfo.equals("/history")) {
                 showBillHistory(request, response);
             } else if (pathInfo.startsWith("/bill/")) {
@@ -56,6 +62,20 @@ public class POSServlet extends BaseViewServlet {
             setErrorMessage(request, "Error: " + e.getMessage());
             showPOS(request, response);
         }
+    }
+
+    private void showStock(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Physical store stock summary
+        List<ProductStockSummary> stockSummary = storeInventoryService.getPhysicalStoreStockSummary();
+        request.setAttribute("stockSummary", stockSummary);
+
+        // Low stock count
+        int lowStockCount = storeInventoryService.getPhysicalStoreLowStock(10).size();
+        request.setAttribute("lowStockCount", lowStockCount);
+
+        setActiveNav(request, "pos-stock");
+        render(request, response, "pos/stock.jsp");
     }
 
     private void showPOS(HttpServletRequest request, HttpServletResponse response)
