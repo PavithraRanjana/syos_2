@@ -50,7 +50,8 @@ public class SecurityFilter implements Filter {
             "/orders",
             "/profile",
             "/api/cart",
-            "/api/orders");
+            "/api/orders",
+            "/api/auth/me");
 
     // Paths for CASHIER role (POS only - uses /pos/stock for physical stock)
     private static final Set<String> CASHIER_PATHS = Set.of(
