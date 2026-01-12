@@ -1,0 +1,50 @@
+{
+    "category": "Snacks",
+    "sub-category": "Chocolates",
+    "main_inventroy": "true",
+    "product_code_generation_by_agent": "true",
+    "products": [
+        {
+            "name": "Ghirardelli Assorted Mini Squares Pouch",
+            "price": "1500",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Ghirardelli_Assorted_Mini_Squares_Pouch.png",
+            "quantity": "200"
+        },
+        {
+            "name": "Lindt EXCELLENCE 85% Cocoa Dark Chocolate Bar",
+            "price": "1200",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Lindt_EXCELLENCE_85_Cocoa_Dark_Chocolate_Bar.png",
+            "quantity": "200"
+        },
+        {
+            "name": "Bouchard Premium Belgian Dark Chocolate",
+            "price": "2500",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Bouchard_Premium_Belgian_Dark_Chocolate.png",
+            "quantity": "200"
+        },
+        {
+            "name": "Full Size Milk Chocolate Mars Singles",
+            "price": "2000",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Full_Size_Milk_Chocolate_Mars_Singles.png",
+            "quantity": "200"
+        },
+        {
+            "name": "Ferrero Rocher Chocolate 48 Pieces Net Wt (600 Gram)",
+            "price": "6000",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Ferrero_Rocher_Chocolate_48_Pieces_Net_Wt_600_Gram.png",
+            "quantity": "200"
+        },
+        {
+            "name": "Perugina Classic Dark Chocolate Pack of 1 Box",
+            "price": "1750",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Perugina_Classic_Dark_Chocolate_Pack_of_1_Box.png",
+            "quantity": "200"
+        },
+        {
+            "name": "Lindt CLASSIC RECIPE Milk Chocolate Bar, Milk Chocolate Candy",
+            "price": "2300",
+            "image": "/Users/guy/antigravity/syos_2/bg_removed_coded/chocolates/Lindt_CLASSIC_RECIPE_Milk_Chocolate_Bar.png",
+            "quantity": "200"
+        }
+    ]
+}

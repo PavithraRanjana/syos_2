@@ -545,10 +545,11 @@
 
                     grid.innerHTML = sortedProducts.map(product => `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1" id="card-\${product.productCode}">
-                    <div class="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center relative">
-                        <svg class="h-20 w-20 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
+                    <div class="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center relative overflow-hidden">
+                        <img src="${ctx}/static/images/products/\${product.productCode}.png" 
+                             alt="\${product.productName}" 
+                             class="h-full w-full object-contain p-2"
+                             onerror="this.onerror=null; this.parentElement.innerHTML='<svg class=\\'h-20 w-20 text-blue-300\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1\\' d=\\'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4\\'/></svg>';">
                     </div>
                     <div class="p-4">
                         <p class="text-xs text-gray-500 mb-1 font-mono">\${product.productCode}</p>

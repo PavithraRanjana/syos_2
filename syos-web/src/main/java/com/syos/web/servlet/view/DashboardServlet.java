@@ -13,7 +13,7 @@ import java.io.IOException;
 /**
  * Servlet for the main dashboard view.
  */
-@WebServlet(urlPatterns = {"/dashboard", "/"})
+@WebServlet(urlPatterns = { "/dashboard", "/" })
 public class DashboardServlet extends BaseViewServlet {
 
     private ReportService reportService;
@@ -27,6 +27,16 @@ public class DashboardServlet extends BaseViewServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String path = request.getServletPath();
+
+        // Only handle exact / and /dashboard paths - let static resources pass through
+        if (!"/".equals(path) && !"/dashboard".equals(path)) {
+            // This handles the case where we're the default servlet and got a request
+            // for something like /static/images/... - forward to container default servlet
+            request.getServletContext().getNamedDispatcher("default").forward(request, response);
+            return;
+        }
+
         try {
             // Get dashboard data
             DashboardSummary summary = reportService.getDashboardSummary();
