@@ -243,6 +243,15 @@
                         if (userRole === 'CASHIER') {
                             menuHtml += '<a href="' + ctx + '/pos" class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600">Go to POS</a>';
                         }
+                        if (userRole === 'INVENTORY_MANAGER') {
+                            menuHtml += '<a href="' + ctx + '/inventory/reports" class="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600">Inventory Dashboard</a>';
+                        }
+                        if (userRole === 'MANAGER') {
+                            menuHtml += '<a href="' + ctx + '/reports" class="px-3 py-1 bg-indigo-500 text-white text-sm rounded hover:bg-indigo-600">Reports Dashboard</a>';
+                        }
+                        if (userRole === 'ADMIN') {
+                            menuHtml += '<a href="' + ctx + '/admin" class="px-3 py-1 bg-gray-700 text-white text-sm rounded hover:bg-gray-800">Admin Panel</a>';
+                        }
                         menuHtml += '<button onclick="logout()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">Logout</button>';
                         userMenu.innerHTML = menuHtml;
                     }
