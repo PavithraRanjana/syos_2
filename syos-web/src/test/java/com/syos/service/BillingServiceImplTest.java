@@ -18,6 +18,12 @@ import com.syos.repository.interfaces.BillRepository;
 import com.syos.repository.interfaces.InventoryTransactionRepository;
 import com.syos.repository.interfaces.ProductRepository;
 import com.syos.service.impl.BillingServiceImpl;
+import com.syos.service.interfaces.BillingService;
+import com.syos.service.interfaces.BillingService.CheckoutRequest;
+import com.syos.service.interfaces.BillingService.CheckoutResult;
+import com.syos.service.interfaces.BillingService.ItemDetail;
+import com.syos.service.interfaces.BillingService.ItemRequest;
+import com.syos.service.interfaces.BillingService.StockCheckResult;
 import com.syos.service.interfaces.BillingService.ValidationResult;
 import com.syos.service.interfaces.StoreInventoryService;
 import com.syos.service.interfaces.StoreInventoryService.BatchAllocation;
@@ -68,12 +74,11 @@ class BillingServiceImplTest {
     @BeforeEach
     void setUp() {
         billingService = new BillingServiceImpl(
-            billRepository,
-            billItemRepository,
-            productRepository,
-            storeInventoryService,
-            transactionRepository
-        );
+                billRepository,
+                billItemRepository,
+                productRepository,
+                storeInventoryService,
+                transactionRepository);
     }
 
     private Bill createTestBill(Integer billId, StoreType storeType, TransactionType transactionType) {
@@ -89,11 +94,10 @@ class BillingServiceImplTest {
 
     private Product createTestProduct(String code, String name, BigDecimal price) {
         Product product = new Product(
-            new ProductCode(code),
-            name,
-            1, 1, 1,
-            new Money(price)
-        );
+                new ProductCode(code),
+                name,
+                1, 1, 1,
+                new Money(price));
         product.setActive(true);
         return product;
     }
@@ -162,7 +166,7 @@ class BillingServiceImplTest {
         void shouldThrowForOnlineBillWithoutCustomer() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.createBill(StoreType.ONLINE, TransactionType.ONLINE, null, null));
+                    () -> billingService.createBill(StoreType.ONLINE, TransactionType.ONLINE, null, null));
         }
 
         @Test
@@ -170,7 +174,7 @@ class BillingServiceImplTest {
         void shouldThrowForNullStoreType() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.createBill(null, TransactionType.CASH, null, "CASHIER-1"));
+                    () -> billingService.createBill(null, TransactionType.CASH, null, "CASHIER-1"));
         }
 
         @Test
@@ -178,7 +182,7 @@ class BillingServiceImplTest {
         void shouldThrowForNullTransactionType() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.createBill(StoreType.PHYSICAL, null, null, "CASHIER-1"));
+                    () -> billingService.createBill(StoreType.PHYSICAL, null, null, "CASHIER-1"));
         }
     }
 
@@ -197,7 +201,7 @@ class BillingServiceImplTest {
             when(productRepository.findByProductCode("TEST-001")).thenReturn(Optional.of(product));
             when(storeInventoryService.hasAvailableStock("TEST-001", StoreType.PHYSICAL, 5)).thenReturn(true);
             when(storeInventoryService.allocateStockForSale("TEST-001", StoreType.PHYSICAL, 5))
-                .thenReturn(List.of(new BatchAllocation(1, "TEST-001", 5, LocalDate.now().plusMonths(6))));
+                    .thenReturn(List.of(new BatchAllocation(1, "TEST-001", 5, LocalDate.now().plusMonths(6))));
             when(billItemRepository.save(any(BillItem.class))).thenAnswer(invocation -> {
                 BillItem item = invocation.getArgument(0);
                 item.setBillItemId(1);
@@ -223,7 +227,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.addItem(1, "TEST-001", 0));
+                    () -> billingService.addItem(1, "TEST-001", 0));
         }
 
         @Test
@@ -236,7 +240,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(ProductNotFoundException.class,
-                () -> billingService.addItem(1, "NONEXISTENT", 5));
+                    () -> billingService.addItem(1, "NONEXISTENT", 5));
         }
 
         @Test
@@ -252,7 +256,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.addItem(1, "TEST-001", 5));
+                    () -> billingService.addItem(1, "TEST-001", 5));
         }
 
         @Test
@@ -269,7 +273,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(InsufficientStockException.class,
-                () -> billingService.addItem(1, "TEST-001", 100));
+                    () -> billingService.addItem(1, "TEST-001", 100));
         }
     }
 
@@ -305,7 +309,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.removeItem(999));
+                    () -> billingService.removeItem(999));
         }
     }
 
@@ -337,7 +341,7 @@ class BillingServiceImplTest {
         void shouldThrowForNegativeDiscount() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.applyDiscount(1, BigDecimal.valueOf(-10.00)));
+                    () -> billingService.applyDiscount(1, BigDecimal.valueOf(-10.00)));
         }
 
         @Test
@@ -345,7 +349,7 @@ class BillingServiceImplTest {
         void shouldThrowForNullDiscount() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> billingService.applyDiscount(1, null));
+                    () -> billingService.applyDiscount(1, null));
         }
     }
 
@@ -380,7 +384,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(InvalidPaymentException.class,
-                () -> billingService.processCashPayment(1, BigDecimal.valueOf(50.00)));
+                    () -> billingService.processCashPayment(1, BigDecimal.valueOf(50.00)));
         }
 
         @Test
@@ -392,7 +396,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(InvalidPaymentException.class,
-                () -> billingService.processCashPayment(1, BigDecimal.valueOf(100.00)));
+                    () -> billingService.processCashPayment(1, BigDecimal.valueOf(100.00)));
         }
     }
 
@@ -426,7 +430,7 @@ class BillingServiceImplTest {
 
             // Act & Assert
             assertThrows(InvalidPaymentException.class,
-                () -> billingService.processOnlinePayment(1));
+                    () -> billingService.processOnlinePayment(1));
         }
     }
 
@@ -624,6 +628,469 @@ class BillingServiceImplTest {
 
             // Assert
             assertEquals("ON-00001", result);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateItemQuantity tests")
+    class UpdateItemQuantityTests {
+
+        @Test
+        @DisplayName("Should throw for non-positive quantity")
+        void shouldThrowForNonPositiveQuantity() {
+            // Act & Assert
+            assertThrows(ValidationException.class,
+                    () -> billingService.updateItemQuantity(1, 0));
+        }
+
+        @Test
+        @DisplayName("Should throw for negative quantity")
+        void shouldThrowForNegativeQuantity() {
+            // Act & Assert
+            assertThrows(ValidationException.class,
+                    () -> billingService.updateItemQuantity(1, -5));
+        }
+
+        @Test
+        @DisplayName("Should throw for non-existent item")
+        void shouldThrowForNonExistentItem() {
+            // Arrange
+            when(billItemRepository.findById(999)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(ValidationException.class,
+                    () -> billingService.updateItemQuantity(999, 5));
+        }
+    }
+
+    @Nested
+    @DisplayName("clearItems tests")
+    class ClearItemsTests {
+
+        @Test
+        @DisplayName("Should clear all items from bill")
+        void shouldClearAllItemsFromBill() {
+            // Arrange
+            Bill bill = createTestBill(1, StoreType.PHYSICAL, TransactionType.CASH);
+            when(billRepository.findById(1)).thenReturn(Optional.of(bill));
+            when(billRepository.save(any(Bill.class))).thenReturn(bill);
+
+            // Act
+            billingService.clearItems(1);
+
+            // Assert
+            verify(billItemRepository).deleteByBillId(1);
+            verify(billRepository).save(any(Bill.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("checkStock tests")
+    class CheckStockTests {
+
+        @Test
+        @DisplayName("Should return not found for non-existent product")
+        void shouldReturnNotFoundForNonExistentProduct() {
+            // Arrange
+            when(productRepository.findByProductCode("UNKNOWN")).thenReturn(Optional.empty());
+
+            // Act
+            StockCheckResult result = billingService.checkStock("UNKNOWN", 5, StoreType.PHYSICAL);
+
+            // Assert
+            assertFalse(result.available());
+        }
+
+        @Test
+        @DisplayName("Should return not found for inactive product")
+        void shouldReturnNotFoundForInactiveProduct() {
+            // Arrange
+            Product product = createTestProduct("INACTIVE", "Inactive Product", BigDecimal.valueOf(50));
+            product.setActive(false);
+            when(productRepository.findByProductCode("INACTIVE")).thenReturn(Optional.of(product));
+
+            // Act
+            StockCheckResult result = billingService.checkStock("INACTIVE", 5, StoreType.PHYSICAL);
+
+            // Assert
+            assertFalse(result.available());
+        }
+
+        @Test
+        @DisplayName("Should return unavailable when insufficient stock")
+        void shouldReturnUnavailableWhenInsufficientStock() {
+            // Arrange
+            Product product = createTestProduct("TEST-001", "Test Product", BigDecimal.valueOf(100));
+            when(productRepository.findByProductCode("TEST-001")).thenReturn(Optional.of(product));
+            when(storeInventoryService.getAvailableQuantity("TEST-001", StoreType.PHYSICAL)).thenReturn(3);
+
+            // Act
+            StockCheckResult result = billingService.checkStock("TEST-001", 10, StoreType.PHYSICAL);
+
+            // Assert
+            assertFalse(result.available());
+        }
+
+        @Test
+        @DisplayName("Should return available when sufficient stock")
+        void shouldReturnAvailableWhenSufficientStock() {
+            // Arrange
+            Product product = createTestProduct("TEST-001", "Test Product", BigDecimal.valueOf(100));
+            when(productRepository.findByProductCode("TEST-001")).thenReturn(Optional.of(product));
+            when(storeInventoryService.getAvailableQuantity("TEST-001", StoreType.PHYSICAL)).thenReturn(50);
+
+            // Act
+            StockCheckResult result = billingService.checkStock("TEST-001", 5, StoreType.PHYSICAL);
+
+            // Assert
+            assertTrue(result.available());
+            assertEquals("TEST-001", result.productCode());
+            assertEquals("Test Product", result.productName());
+        }
+    }
+
+    @Nested
+    @DisplayName("checkout tests")
+    class CheckoutTests {
+
+        @Test
+        @DisplayName("Should fail checkout with null store type")
+        void shouldFailCheckoutWithNullStoreType() {
+            // Arrange
+            CheckoutRequest request = new CheckoutRequest(
+                    null, TransactionType.CASH, null, "CASHIER-1",
+                    List.of(new ItemRequest("TEST-001", 5)),
+                    BigDecimal.ZERO, BigDecimal.valueOf(500));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Store type")));
+        }
+
+        @Test
+        @DisplayName("Should fail checkout with null transaction type")
+        void shouldFailCheckoutWithNullTransactionType() {
+            // Arrange
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.PHYSICAL, null, null, "CASHIER-1",
+                    List.of(new ItemRequest("TEST-001", 5)),
+                    BigDecimal.ZERO, BigDecimal.valueOf(500));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Transaction type")));
+        }
+
+        @Test
+        @DisplayName("Should fail checkout with empty cart")
+        void shouldFailCheckoutWithEmptyCart() {
+            // Arrange
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.PHYSICAL, TransactionType.CASH, null, "CASHIER-1",
+                    List.of(),
+                    BigDecimal.ZERO, BigDecimal.valueOf(500));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Cart is empty")));
+        }
+
+        @Test
+        @DisplayName("Should fail checkout for online order without customer")
+        void shouldFailCheckoutForOnlineOrderWithoutCustomer() {
+            // Arrange
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.ONLINE, TransactionType.ONLINE, null, null,
+                    List.of(new ItemRequest("TEST-001", 5)),
+                    BigDecimal.ZERO, null);
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Customer ID")));
+        }
+
+        @Test
+        @DisplayName("Should checkout successfully for physical store")
+        void shouldCheckoutSuccessfullyForPhysicalStore() {
+            // Arrange
+            String productCode = "TEST-001";
+            Product product = createTestProduct(productCode, "Test Product", BigDecimal.valueOf(100.00));
+            when(productRepository.findByProductCode(productCode)).thenReturn(Optional.of(product));
+            when(storeInventoryService.getAvailableQuantity(productCode, StoreType.PHYSICAL)).thenReturn(50);
+
+            BatchAllocation allocation = new BatchAllocation(1, productCode, 5, LocalDate.now().plusDays(10));
+            when(storeInventoryService.allocateStockForSale(productCode, StoreType.PHYSICAL, 5))
+                    .thenReturn(List.of(allocation));
+
+            when(billRepository.generateNextSerialNumber(StoreType.PHYSICAL)).thenReturn("PH-001");
+            when(billRepository.save(any(Bill.class))).thenAnswer(i -> {
+                Bill b = i.getArgument(0);
+                if (b.getBillId() == null)
+                    b.setBillId(1);
+                return b;
+            });
+            when(billItemRepository.save(any(BillItem.class))).thenAnswer(i -> i.getArgument(0));
+            when(storeInventoryService.reducePhysicalStoreStock(productCode, 1, 5)).thenReturn(true);
+
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.PHYSICAL, TransactionType.CASH, null, "CASHIER-1",
+                    List.of(new ItemRequest(productCode, 5)),
+                    BigDecimal.ZERO, BigDecimal.valueOf(1000.00));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertTrue(result.success());
+            assertEquals(new BigDecimal("500.00"), result.total());
+            assertEquals(new BigDecimal("500.00"), result.change());
+            assertEquals(1, result.items().size());
+            assertEquals("Test Product", result.items().get(0).productName());
+
+            verify(storeInventoryService).reducePhysicalStoreStock(productCode, 1, 5);
+        }
+
+        @Test
+        @DisplayName("Should checkout successfully for online store")
+        void shouldCheckoutSuccessfullyForOnlineStore() {
+            // Arrange
+            String productCode = "TEST-002";
+            Product product = createTestProduct(productCode, "Online Product", BigDecimal.valueOf(200.00));
+            when(productRepository.findByProductCode(productCode)).thenReturn(Optional.of(product));
+            when(storeInventoryService.getAvailableQuantity(productCode, StoreType.ONLINE)).thenReturn(20);
+
+            BatchAllocation allocation = new BatchAllocation(2, productCode, 2, LocalDate.now().plusDays(10));
+            when(storeInventoryService.allocateStockForSale(productCode, StoreType.ONLINE, 2))
+                    .thenReturn(List.of(allocation));
+
+            when(billRepository.generateNextSerialNumber(StoreType.ONLINE)).thenReturn("ON-001");
+            when(billRepository.save(any(Bill.class))).thenAnswer(i -> {
+                Bill b = i.getArgument(0);
+                if (b.getBillId() == null)
+                    b.setBillId(2);
+                return b;
+            });
+            when(billItemRepository.save(any(BillItem.class))).thenAnswer(i -> i.getArgument(0));
+
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.ONLINE, TransactionType.ONLINE, 1001, null,
+                    List.of(new ItemRequest(productCode, 2)),
+                    BigDecimal.valueOf(50.00), null);
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertTrue(result.success());
+            assertEquals(new BigDecimal("350.00"), result.total());
+            assertEquals(new BigDecimal("350.00"), result.cashTendered());
+            assertEquals(new BigDecimal("0.00"), result.change());
+
+            verify(storeInventoryService).reduceOnlineStoreStock(productCode, 2, 2);
+        }
+
+        @Test
+        @DisplayName("Should fail checkout when stock unavailable")
+        void shouldFailCheckoutWhenStockUnavailable() {
+            // Arrange
+            String productCode = "TEST-001";
+            Product product = createTestProduct(productCode, "Test Product", BigDecimal.valueOf(100.00));
+            when(productRepository.findByProductCode(productCode)).thenReturn(Optional.of(product));
+
+            // Available 2, requested 5
+            when(storeInventoryService.getAvailableQuantity(productCode, StoreType.PHYSICAL)).thenReturn(2);
+
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.PHYSICAL, TransactionType.CASH, null, "CASHIER-1",
+                    List.of(new ItemRequest(productCode, 5)),
+                    BigDecimal.ZERO, BigDecimal.valueOf(1000.00));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Insufficient stock")));
+        }
+
+        @Test
+        @DisplayName("Should fail checkout when discount exceeds subtotal")
+        void shouldFailCheckoutWhenDiscountExceedsSubtotal() {
+            // Arrange
+            String productCode = "TEST-001";
+            Product product = createTestProduct(productCode, "Test Product", BigDecimal.valueOf(100.00));
+            when(productRepository.findByProductCode(productCode)).thenReturn(Optional.of(product));
+            when(storeInventoryService.getAvailableQuantity(productCode, StoreType.PHYSICAL)).thenReturn(50);
+
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.PHYSICAL, TransactionType.CASH, null, "CASHIER-1",
+                    List.of(new ItemRequest(productCode, 5)),
+                    BigDecimal.valueOf(600.00),
+                    BigDecimal.valueOf(1000.00));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Discount cannot exceed")));
+        }
+
+        @Test
+        @DisplayName("Should fail checkout when insufficient cash tendered")
+        void shouldFailCheckoutWhenInsufficientCashTendered() {
+            // Arrange
+            String productCode = "TEST-001";
+            Product product = createTestProduct(productCode, "Test Product", BigDecimal.valueOf(100.00));
+            when(productRepository.findByProductCode(productCode)).thenReturn(Optional.of(product));
+            when(storeInventoryService.getAvailableQuantity(productCode, StoreType.PHYSICAL)).thenReturn(50);
+
+            CheckoutRequest request = new CheckoutRequest(
+                    StoreType.PHYSICAL, TransactionType.CASH, null, "CASHIER-1",
+                    List.of(new ItemRequest(productCode, 5)),
+                    BigDecimal.ZERO,
+                    BigDecimal.valueOf(400.00));
+
+            // Act
+            CheckoutResult result = billingService.checkout(request);
+
+            // Assert
+            assertFalse(result.success());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("Insufficient cash")));
+        }
+    }
+
+    @Nested
+    @DisplayName("validateBillForFinalization tests")
+    class ValidateBillForFinalizationTests {
+
+        @Test
+        @DisplayName("Should return invalid for bill not in progress")
+        void shouldReturnInvalidForBillNotInProgress() {
+            // Act
+            ValidationResult result = billingService.validateBillForFinalization(999);
+
+            // Assert
+            assertFalse(result.isValid());
+            assertTrue(result.errors().stream().anyMatch(e -> e.contains("not found")));
+        }
+    }
+
+    @Nested
+    @DisplayName("processCashPayment edge cases")
+    class ProcessCashPaymentEdgeCases {
+
+        @Test
+        @DisplayName("Should throw for null tendered amount")
+        void shouldThrowForNullTenderedAmount() {
+            // Arrange
+            Bill bill = createTestBill(1, StoreType.PHYSICAL, TransactionType.CASH);
+            when(billRepository.findById(1)).thenReturn(Optional.of(bill));
+
+            // Act & Assert
+            assertThrows(InvalidPaymentException.class,
+                    () -> billingService.processCashPayment(1, null));
+        }
+
+        @Test
+        @DisplayName("Should throw for zero tendered amount")
+        void shouldThrowForZeroTenderedAmount() {
+            // Arrange
+            Bill bill = createTestBill(1, StoreType.PHYSICAL, TransactionType.CASH);
+            when(billRepository.findById(1)).thenReturn(Optional.of(bill));
+
+            // Act & Assert
+            assertThrows(InvalidPaymentException.class,
+                    () -> billingService.processCashPayment(1, BigDecimal.ZERO));
+        }
+
+        @Test
+        @DisplayName("Should throw for negative tendered amount")
+        void shouldThrowForNegativeTenderedAmount() {
+            // Arrange
+            Bill bill = createTestBill(1, StoreType.PHYSICAL, TransactionType.CASH);
+            when(billRepository.findById(1)).thenReturn(Optional.of(bill));
+
+            // Act & Assert
+            assertThrows(InvalidPaymentException.class,
+                    () -> billingService.processCashPayment(1, BigDecimal.valueOf(-100)));
+        }
+    }
+
+    @Nested
+    @DisplayName("cancelBill edge cases")
+    class CancelBillEdgeCases {
+
+        @Test
+        @DisplayName("Should throw for non-existent bill")
+        void shouldThrowForNonExistentBill() {
+            // Arrange
+            when(billRepository.findById(999)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(BillNotFoundException.class,
+                    () -> billingService.cancelBill(999));
+        }
+
+        @Test
+        @DisplayName("Should throw for already finalized bill")
+        void shouldThrowForAlreadyFinalizedBill() {
+            // Arrange
+            Bill bill = createTestBill(1, StoreType.PHYSICAL, TransactionType.CASH);
+            when(billRepository.findById(1)).thenReturn(Optional.of(bill));
+            // Bill is not in billsInProgress map, so cancelling will try to check
+            // repository
+
+            // Act & Assert
+            assertThrows(ValidationException.class,
+                    () -> billingService.cancelBill(1));
+        }
+    }
+
+    @Nested
+    @DisplayName("findBillById edge cases")
+    class FindBillByIdEdgeCases {
+
+        @Test
+        @DisplayName("Should find in-progress bill first")
+        void shouldFindInProgressBillFirst() {
+            // Arrange - First create a bill to put it in progress
+            Bill bill = createTestBill(1, StoreType.PHYSICAL, TransactionType.CASH);
+            when(billRepository.generateNextSerialNumber(StoreType.PHYSICAL)).thenReturn("PH-00001");
+            when(billRepository.save(any(Bill.class))).thenReturn(bill);
+
+            billingService.createBill(StoreType.PHYSICAL, TransactionType.CASH, null, "CASHIER-1");
+
+            // Act
+            Optional<Bill> result = billingService.findBillById(1);
+
+            // Assert
+            assertTrue(result.isPresent());
+        }
+
+        @Test
+        @DisplayName("Should return empty for non-existent bill")
+        void shouldReturnEmptyForNonExistentBill() {
+            // Arrange
+            when(billRepository.findById(999)).thenReturn(Optional.empty());
+
+            // Act
+            Optional<Bill> result = billingService.findBillById(999);
+
+            // Assert
+            assertTrue(result.isEmpty());
         }
     }
 }
