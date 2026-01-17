@@ -240,6 +240,50 @@ class StoreInventoryServiceImplTest {
                         verify(mainInventoryRepository).reduceQuantity(1, 20);
                         verify(onlineStoreRepository).addQuantity(productCode, 1, 20);
                 }
+
+                @Test
+                @DisplayName("Should throw for non-existent product")
+                void shouldThrowForNonExistentProduct() {
+                        when(productRepository.existsByProductCode("NONEXISTENT")).thenReturn(false);
+                        assertThrows(ProductNotFoundException.class,
+                                        () -> storeInventoryService.restockOnlineStore("NONEXISTENT", 20));
+                }
+
+                @Test
+                @DisplayName("Should return failure when no batches available")
+                void shouldReturnFailureWhenNoBatchesAvailable() {
+                        String productCode = "TEST-001";
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
+                                        .thenReturn(List.of());
+
+                        RestockResult result = storeInventoryService.restockOnlineStore(productCode, 20);
+
+                        assertFalse(result.success());
+                        assertEquals(0, result.quantityRestocked());
+                }
+
+                @Test
+                @DisplayName("Should handle partial restock when main inventory insufficient")
+                void shouldHandlePartialRestock() {
+                        // Arrange
+                        String productCode = "TEST-001";
+                        MainInventory batch = createTestBatch(1, productCode, 10, LocalDate.now().plusMonths(6));
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
+                                        .thenReturn(List.of(batch));
+
+                        when(mainInventoryRepository.reduceQuantity(eq(1), eq(10))).thenReturn(true);
+                        when(onlineStoreRepository.addQuantity(eq(productCode), eq(1), eq(10))).thenReturn(true);
+
+                        // Act - request 20
+                        RestockResult result = storeInventoryService.restockOnlineStore(productCode, 20);
+
+                        // Assert
+                        assertTrue(result.success());
+                        assertEquals(10, result.quantityRestocked());
+                        assertTrue(result.message().contains("Partial restock"));
+                }
         }
 
         @Nested
