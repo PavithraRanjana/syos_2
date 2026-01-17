@@ -1,5 +1,6 @@
 package com.syos.service;
 
+import com.syos.domain.enums.UserRole;
 import com.syos.domain.models.Customer;
 import com.syos.exception.CustomerNotFoundException;
 import com.syos.exception.DuplicateEmailException;
@@ -65,12 +66,11 @@ class CustomerServiceImplTest {
 
             // Act
             Customer result = customerService.register(
-                "John Doe",
-                "test@example.com",
-                "+94771234567",
-                "123 Test Street",
-                "password123"
-            );
+                    "John Doe",
+                    "test@example.com",
+                    "+94771234567",
+                    "123 Test Street",
+                    "password123");
 
             // Assert
             assertNotNull(result);
@@ -88,13 +88,12 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(DuplicateEmailException.class,
-                () -> customerService.register(
-                    "John Doe",
-                    "existing@example.com",
-                    "+94771234567",
-                    "123 Test Street",
-                    "password123"
-                ));
+                    () -> customerService.register(
+                            "John Doe",
+                            "existing@example.com",
+                            "+94771234567",
+                            "123 Test Street",
+                            "password123"));
             verify(customerRepository, never()).save(any());
         }
 
@@ -107,13 +106,12 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.register(
-                    "John Doe",
-                    "test@example.com",
-                    "+94771234567",
-                    "123 Test Street",
-                    "password123"
-                ));
+                    () -> customerService.register(
+                            "John Doe",
+                            "test@example.com",
+                            "+94771234567",
+                            "123 Test Street",
+                            "password123"));
         }
 
         @Test
@@ -121,13 +119,12 @@ class CustomerServiceImplTest {
         void shouldThrowForInvalidEmailFormat() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.register(
-                    "John Doe",
-                    "invalid-email",
-                    "+94771234567",
-                    "123 Test Street",
-                    "password123"
-                ));
+                    () -> customerService.register(
+                            "John Doe",
+                            "invalid-email",
+                            "+94771234567",
+                            "123 Test Street",
+                            "password123"));
         }
 
         @Test
@@ -135,13 +132,12 @@ class CustomerServiceImplTest {
         void shouldThrowForEmptyName() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.register(
-                    "",
-                    "test@example.com",
-                    "+94771234567",
-                    "123 Test Street",
-                    "password123"
-                ));
+                    () -> customerService.register(
+                            "",
+                            "test@example.com",
+                            "+94771234567",
+                            "123 Test Street",
+                            "password123"));
         }
 
         @Test
@@ -149,13 +145,12 @@ class CustomerServiceImplTest {
         void shouldThrowForShortName() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.register(
-                    "J",
-                    "test@example.com",
-                    "+94771234567",
-                    "123 Test Street",
-                    "password123"
-                ));
+                    () -> customerService.register(
+                            "J",
+                            "test@example.com",
+                            "+94771234567",
+                            "123 Test Street",
+                            "password123"));
         }
 
         @Test
@@ -163,13 +158,12 @@ class CustomerServiceImplTest {
         void shouldThrowForShortPassword() {
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.register(
-                    "John Doe",
-                    "test@example.com",
-                    "+94771234567",
-                    "123 Test Street",
-                    "12345"
-                ));
+                    () -> customerService.register(
+                            "John Doe",
+                            "test@example.com",
+                            "+94771234567",
+                            "123 Test Street",
+                            "12345"));
         }
 
         @Test
@@ -185,12 +179,11 @@ class CustomerServiceImplTest {
 
             // Act
             Customer result = customerService.register(
-                "John Doe",
-                "test@example.com",
-                null,
-                "123 Test Street",
-                "password123"
-            );
+                    "John Doe",
+                    "test@example.com",
+                    null,
+                    "123 Test Street",
+                    "password123");
 
             // Assert
             assertNotNull(result);
@@ -349,7 +342,7 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(CustomerNotFoundException.class,
-                () -> customerService.updateProfile(999, "Jane Doe", "+94779876543", "456 New Street"));
+                    () -> customerService.updateProfile(999, "Jane Doe", "+94779876543", "456 New Street"));
         }
 
         @Test
@@ -363,7 +356,7 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.updateProfile(1, "John Doe", "+94772222222", "123 Test Street"));
+                    () -> customerService.updateProfile(1, "John Doe", "+94772222222", "123 Test Street"));
         }
     }
 
@@ -411,7 +404,7 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(ValidationException.class,
-                () -> customerService.changePassword(1, "password123", "12345"));
+                    () -> customerService.changePassword(1, "password123", "12345"));
         }
     }
 
@@ -442,7 +435,7 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(CustomerNotFoundException.class,
-                () -> customerService.resetPassword(999, "newpassword123"));
+                    () -> customerService.resetPassword(999, "newpassword123"));
         }
     }
 
@@ -486,7 +479,7 @@ class CustomerServiceImplTest {
 
             // Act & Assert
             assertThrows(CustomerNotFoundException.class,
-                () -> customerService.deactivateAccount(999));
+                    () -> customerService.deactivateAccount(999));
         }
     }
 
@@ -499,9 +492,8 @@ class CustomerServiceImplTest {
         void shouldReturnAllCustomers() {
             // Arrange
             List<Customer> customers = List.of(
-                createTestCustomer("John Doe", "john@example.com"),
-                createTestCustomer("Jane Doe", "jane@example.com")
-            );
+                    createTestCustomer("John Doe", "john@example.com"),
+                    createTestCustomer("Jane Doe", "jane@example.com"));
             when(customerRepository.findAll()).thenReturn(customers);
 
             // Act
@@ -563,8 +555,7 @@ class CustomerServiceImplTest {
         @DisplayName("Should return customer statistics")
         void shouldReturnCustomerStatistics() {
             // Arrange
-            CustomerRepository.CustomerStatistics repoStats =
-                new CustomerRepository.CustomerStatistics(100, 95, 10);
+            CustomerRepository.CustomerStatistics repoStats = new CustomerRepository.CustomerStatistics(100, 95, 10);
             when(customerRepository.getStatistics()).thenReturn(repoStats);
 
             // Act
@@ -664,6 +655,102 @@ class CustomerServiceImplTest {
 
             // Assert
             verify(customerRepository).findAll(20, 10);
+        }
+    }
+
+    @Nested
+    @DisplayName("role management tests")
+    class RoleManagementTests {
+
+        @Test
+        @DisplayName("Should create user with role successfully")
+        void shouldCreateUserWithRoleSuccessfully() {
+            // Arrange
+            when(customerRepository.existsByEmail("admin@example.com")).thenReturn(false);
+            when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> {
+                Customer saved = invocation.getArgument(0);
+                saved.setCustomerId(1);
+                return saved;
+            });
+
+            // Act
+            Customer result = customerService.createUserWithRole(
+                    "Admin User",
+                    "admin@example.com",
+                    "+94771234567",
+                    "123 Admin St",
+                    "password123",
+                    UserRole.ADMIN);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(UserRole.ADMIN, result.getRole());
+            verify(customerRepository).save(any(Customer.class));
+        }
+
+        @Test
+        @DisplayName("Should fail to create user with null role")
+        void shouldFailToCreateUserWithNullRole() {
+            // Act & Assert
+            assertThrows(ValidationException.class,
+                    () -> customerService.createUserWithRole(
+                            "User",
+                            "user@example.com",
+                            null,
+                            "Address",
+                            "password",
+                            null));
+        }
+
+        @Test
+        @DisplayName("Should update user role successfully")
+        void shouldUpdateUserRoleSuccessfully() {
+            // Arrange
+            Customer customer = createTestCustomer("John Doe", "john@example.com");
+            customer.setRole(UserRole.CUSTOMER);
+            when(customerRepository.existsById(1)).thenReturn(true);
+            when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+            // Since mock is NOT CustomerRepositoryImpl, it goes to fallback.
+            when(customerRepository.save(any(Customer.class))).thenReturn(customer);
+
+            // Act
+            boolean result = customerService.updateUserRole(1, UserRole.CASHIER);
+
+            // Assert
+            assertTrue(result);
+            assertEquals(UserRole.CASHIER, customer.getRole());
+            verify(customerRepository).save(customer);
+        }
+
+        @Test
+        @DisplayName("Should fail update user role for non-existent customer")
+        void shouldFailUpdateUserRoleForNonExistentCustomer() {
+            when(customerRepository.existsById(999)).thenReturn(false);
+            assertThrows(CustomerNotFoundException.class,
+                    () -> customerService.updateUserRole(999, UserRole.ADMIN));
+        }
+
+        @Test
+        @DisplayName("Should find users by role (fallback logic)")
+        void shouldFindUsersByRole() {
+            // Arrange
+            Customer admin = createTestCustomer("Admin", "admin@example.com");
+            admin.setRole(UserRole.ADMIN);
+            Customer customer = createTestCustomer("User", "user@example.com");
+            customer.setRole(UserRole.CUSTOMER);
+
+            when(customerRepository.findAll()).thenReturn(List.of(admin, customer));
+
+            // Act
+            List<Customer> admins = customerService.findByRole(UserRole.ADMIN);
+            List<Customer> customers = customerService.findByRole(UserRole.CUSTOMER);
+
+            // Assert
+            assertEquals(1, admins.size());
+            assertEquals("Admin", admins.get(0).getCustomerName());
+
+            assertEquals(1, customers.size());
+            assertEquals("User", customers.get(0).getCustomerName());
         }
     }
 }
