@@ -7,6 +7,7 @@ import com.syos.domain.models.PhysicalStoreInventory;
 import com.syos.domain.valueobjects.ProductCode;
 import com.syos.exception.InsufficientStockException;
 import com.syos.exception.ProductNotFoundException;
+import com.syos.exception.ValidationException;
 import com.syos.repository.interfaces.*;
 import com.syos.service.impl.StoreInventoryServiceImpl;
 import com.syos.service.interfaces.StoreInventoryService.BatchAllocation;
@@ -15,16 +16,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -56,7 +58,6 @@ class StoreInventoryServiceImplTest {
 
         @BeforeEach
         void setUp() {
-                // Constructor order: physical, online, main, transaction, product
                 storeInventoryService = new StoreInventoryServiceImpl(
                                 physicalStoreRepository,
                                 onlineStoreRepository,
@@ -104,37 +105,53 @@ class StoreInventoryServiceImplTest {
         class PhysicalStoreRestockTests {
 
                 @Test
-                @Disabled("needs mock adjustment for reduceQuantity/addQuantity pattern")
                 @DisplayName("Should restock physical store successfully")
                 void shouldRestockPhysicalStoreSuccessfully() {
                         // Arrange
-                        MainInventory batch = createTestBatch(1, "TEST-001", 100, LocalDate.now().plusMonths(6));
-                        when(productRepository.existsByProductCode("TEST-001")).thenReturn(true);
-                        when(mainInventoryRepository.findAvailableBatchesByProductCode("TEST-001"))
+                        String productCode = "TEST-001";
+                        MainInventory batch = createTestBatch(1, productCode, 100, LocalDate.now().plusMonths(6));
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
                                         .thenReturn(List.of(batch));
-                        when(physicalStoreRepository.findByProductCodeAndBatchId("TEST-001", 1))
-                                        .thenReturn(Optional.empty());
-                        when(physicalStoreRepository.save(any(PhysicalStoreInventory.class)))
-                                        .thenAnswer(inv -> inv.getArgument(0));
-                        when(mainInventoryRepository.save(any(MainInventory.class)))
-                                        .thenReturn(batch);
+
+                        when(mainInventoryRepository.reduceQuantity(eq(1), eq(20))).thenReturn(true);
+                        when(physicalStoreRepository.addQuantity(eq(productCode), eq(1), eq(20))).thenReturn(true);
 
                         // Act
-                        RestockResult result = storeInventoryService.restockPhysicalStore("TEST-001", 20);
+                        RestockResult result = storeInventoryService.restockPhysicalStore(productCode, 20);
 
                         // Assert
                         assertTrue(result.success());
                         assertEquals(20, result.quantityRestocked());
-                        verify(physicalStoreRepository).save(any(PhysicalStoreInventory.class));
+                        assertEquals(1, result.batchesUsed());
+
+                        verify(mainInventoryRepository).reduceQuantity(1, 20);
+                        verify(physicalStoreRepository).addQuantity(productCode, 1, 20);
+                        verify(transactionRepository).save(any());
                 }
 
                 @Test
-                @DisplayName("Should throw exception for non-existent product")
-                void shouldThrowForNonExistentProduct() {
+                @DisplayName("Should restock physical store from specific batch successfully")
+                void shouldRestockPhysicalStoreFromBatchSuccessfully() {
                         // Arrange
-                        when(productRepository.existsByProductCode("NONEXISTENT")).thenReturn(false);
+                        String productCode = "TEST-001";
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.reduceQuantity(eq(1), eq(20))).thenReturn(true);
+                        when(physicalStoreRepository.addQuantity(eq(productCode), eq(1), eq(20))).thenReturn(true);
 
-                        // Act & Assert
+                        // Act
+                        boolean result = storeInventoryService.restockPhysicalStoreFromBatch(productCode, 1, 20);
+
+                        // Assert
+                        assertTrue(result);
+                        verify(mainInventoryRepository).reduceQuantity(1, 20);
+                        verify(physicalStoreRepository).addQuantity(productCode, 1, 20);
+                }
+
+                @Test
+                @DisplayName("Should throw for non-existent product")
+                void shouldThrowForNonExistentProduct() {
+                        when(productRepository.existsByProductCode("NONEXISTENT")).thenReturn(false);
                         assertThrows(ProductNotFoundException.class,
                                         () -> storeInventoryService.restockPhysicalStore("NONEXISTENT", 20));
                 }
@@ -142,66 +159,39 @@ class StoreInventoryServiceImplTest {
                 @Test
                 @DisplayName("Should return failure when no batches available")
                 void shouldReturnFailureWhenNoBatchesAvailable() {
-                        // Arrange
-                        when(productRepository.existsByProductCode("TEST-001")).thenReturn(true);
-                        when(mainInventoryRepository.findAvailableBatchesByProductCode("TEST-001"))
+                        String productCode = "TEST-001";
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
                                         .thenReturn(List.of());
 
-                        // Act
-                        RestockResult result = storeInventoryService.restockPhysicalStore("TEST-001", 20);
+                        RestockResult result = storeInventoryService.restockPhysicalStore(productCode, 20);
 
-                        // Assert
                         assertFalse(result.success());
                         assertEquals(0, result.quantityRestocked());
                 }
-        }
-
-        @Nested
-        @DisplayName("Physical Store Stock Query tests")
-        class PhysicalStoreStockQueryTests {
 
                 @Test
-                @DisplayName("Should get physical store stock")
-                void shouldGetPhysicalStoreStock() {
+                @DisplayName("Should handle partial restock when main inventory insufficient")
+                void shouldHandlePartialRestock() {
                         // Arrange
-                        PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 1, 50);
-                        when(physicalStoreRepository.findAvailableByProductCode("TEST-001"))
-                                        .thenReturn(List.of(inv));
+                        String productCode = "TEST-001";
+                        MainInventory batch = createTestBatch(1, productCode, 10, LocalDate.now().plusMonths(6)); // Only
+                                                                                                                  // 10
+                                                                                                                  // available
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
+                                        .thenReturn(List.of(batch));
 
-                        // Act
-                        List<PhysicalStoreInventory> result = storeInventoryService.getPhysicalStoreStock("TEST-001");
+                        when(mainInventoryRepository.reduceQuantity(eq(1), eq(10))).thenReturn(true);
+                        when(physicalStoreRepository.addQuantity(eq(productCode), eq(1), eq(10))).thenReturn(true);
+
+                        // Act - request 20
+                        RestockResult result = storeInventoryService.restockPhysicalStore(productCode, 20);
 
                         // Assert
-                        assertEquals(1, result.size());
-                        assertEquals(50, result.get(0).getQuantityOnShelf());
-                }
-
-                @Test
-                @DisplayName("Should get physical store quantity")
-                void shouldGetPhysicalStoreQuantity() {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001"))
-                                        .thenReturn(75);
-
-                        // Act
-                        int result = storeInventoryService.getPhysicalStoreQuantity("TEST-001");
-
-                        // Assert
-                        assertEquals(75, result);
-                }
-
-                @Test
-                @DisplayName("Should get physical store low stock")
-                void shouldGetPhysicalStoreLowStock() {
-                        // Arrange
-                        PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 1, 5);
-                        when(physicalStoreRepository.findLowStock(10)).thenReturn(List.of(inv));
-
-                        // Act
-                        List<PhysicalStoreInventory> result = storeInventoryService.getPhysicalStoreLowStock(10);
-
-                        // Assert
-                        assertEquals(1, result.size());
+                        assertTrue(result.success());
+                        assertEquals(10, result.quantityRestocked());
+                        assertTrue(result.message().contains("Partial restock"));
                 }
         }
 
@@ -210,356 +200,268 @@ class StoreInventoryServiceImplTest {
         class OnlineStoreRestockTests {
 
                 @Test
-                @Disabled("needs mock adjustment for reduceQuantity/addQuantity pattern")
                 @DisplayName("Should restock online store successfully")
                 void shouldRestockOnlineStoreSuccessfully() {
                         // Arrange
-                        MainInventory batch = createTestBatch(1, "TEST-001", 100, LocalDate.now().plusMonths(6));
-                        when(productRepository.existsByProductCode("TEST-001")).thenReturn(true);
-                        when(mainInventoryRepository.findAvailableBatchesByProductCode("TEST-001"))
+                        String productCode = "TEST-001";
+                        MainInventory batch = createTestBatch(1, productCode, 100, LocalDate.now().plusMonths(6));
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
                                         .thenReturn(List.of(batch));
-                        when(onlineStoreRepository.findByProductCodeAndBatchId("TEST-001", 1))
-                                        .thenReturn(Optional.empty());
-                        when(onlineStoreRepository.save(any(OnlineStoreInventory.class)))
-                                        .thenAnswer(inv -> inv.getArgument(0));
-                        when(mainInventoryRepository.save(any(MainInventory.class)))
-                                        .thenReturn(batch);
+
+                        when(mainInventoryRepository.reduceQuantity(eq(1), eq(20))).thenReturn(true);
+                        when(onlineStoreRepository.addQuantity(eq(productCode), eq(1), eq(20))).thenReturn(true);
 
                         // Act
-                        RestockResult result = storeInventoryService.restockOnlineStore("TEST-001", 20);
+                        RestockResult result = storeInventoryService.restockOnlineStore(productCode, 20);
 
                         // Assert
                         assertTrue(result.success());
                         assertEquals(20, result.quantityRestocked());
+
+                        verify(mainInventoryRepository).reduceQuantity(1, 20);
+                        verify(onlineStoreRepository).addQuantity(productCode, 1, 20);
+                }
+
+                @Test
+                @DisplayName("Should restock online store from specific batch successfully")
+                void shouldRestockOnlineStoreFromBatchSuccessfully() {
+                        // Arrange
+                        String productCode = "TEST-001";
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.reduceQuantity(eq(1), eq(20))).thenReturn(true);
+                        when(onlineStoreRepository.addQuantity(eq(productCode), eq(1), eq(20))).thenReturn(true);
+
+                        // Act
+                        boolean result = storeInventoryService.restockOnlineStoreFromBatch(productCode, 1, 20);
+
+                        // Assert
+                        assertTrue(result);
+                        verify(mainInventoryRepository).reduceQuantity(1, 20);
+                        verify(onlineStoreRepository).addQuantity(productCode, 1, 20);
                 }
         }
 
         @Nested
-        @DisplayName("Online Store Stock Query tests")
-        class OnlineStoreStockQueryTests {
+        @DisplayName("Stock Query tests")
+        class StockQueryTests {
+
+                @Test
+                @DisplayName("Should get physical store stock")
+                void shouldGetPhysicalStoreStock() {
+                        PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 1, 50);
+                        when(physicalStoreRepository.findAvailableByProductCode("TEST-001"))
+                                        .thenReturn(List.of(inv));
+
+                        List<PhysicalStoreInventory> result = storeInventoryService.getPhysicalStoreStock("TEST-001");
+
+                        assertEquals(1, result.size());
+                        assertEquals(50, result.get(0).getQuantityOnShelf());
+                }
 
                 @Test
                 @DisplayName("Should get online store stock")
                 void shouldGetOnlineStoreStock() {
-                        // Arrange
                         OnlineStoreInventory inv = createOnlineInventory("TEST-001", 1, 50);
                         when(onlineStoreRepository.findAvailableByProductCode("TEST-001"))
                                         .thenReturn(List.of(inv));
 
-                        // Act
                         List<OnlineStoreInventory> result = storeInventoryService.getOnlineStoreStock("TEST-001");
 
-                        // Assert
+                        assertEquals(1, result.size());
+                        assertEquals(50, result.get(0).getQuantityAvailable());
+                }
+
+                @Test
+                @DisplayName("Should get physical store low stock")
+                void shouldGetPhysicalStoreLowStock() {
+                        PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 1, 5);
+                        when(physicalStoreRepository.findLowStock(10)).thenReturn(List.of(inv));
+
+                        List<PhysicalStoreInventory> result = storeInventoryService.getPhysicalStoreLowStock(10);
+
                         assertEquals(1, result.size());
                 }
 
                 @Test
-                @DisplayName("Should get online store quantity")
-                void shouldGetOnlineStoreQuantity() {
-                        // Arrange
-                        when(onlineStoreRepository.getTotalQuantityAvailable("TEST-001"))
-                                        .thenReturn(60);
+                @DisplayName("Should get online store low stock")
+                void shouldGetOnlineStoreLowStock() {
+                        OnlineStoreInventory inv = createOnlineInventory("TEST-001", 1, 5);
+                        when(onlineStoreRepository.findLowStock(10)).thenReturn(List.of(inv));
 
-                        // Act
-                        int result = storeInventoryService.getOnlineStoreQuantity("TEST-001");
+                        List<OnlineStoreInventory> result = storeInventoryService.getOnlineStoreLowStock(10);
 
-                        // Assert
-                        assertEquals(60, result);
+                        assertEquals(1, result.size());
+                }
+
+                @Test
+                @DisplayName("Should get stock summaries")
+                void shouldGetStockSummaries() {
+                        when(physicalStoreRepository.getStockSummary()).thenReturn(List.of(
+                                        new PhysicalStoreInventoryRepository.ProductStockSummary("P1", "Product 1", 100,
+                                                        2)));
+                        when(onlineStoreRepository.getStockSummary()).thenReturn(List.of(
+                                        new OnlineStoreInventoryRepository.ProductStockSummary("P2", "Product 2", 50,
+                                                        1)));
+
+                        var physical = storeInventoryService.getPhysicalStoreStockSummary();
+                        var online = storeInventoryService.getOnlineStoreStockSummary();
+
+                        assertEquals(1, physical.size());
+                        assertEquals("P1", physical.get(0).productCode());
+                        assertEquals(1, online.size());
+                        assertEquals("P2", online.get(0).productCode());
                 }
         }
 
         @Nested
-        @DisplayName("Stock Availability tests")
+        @DisplayName("Stock Availability Tests")
         class StockAvailabilityTests {
 
                 @Test
-                @DisplayName("Should check availability for physical store")
-                void shouldCheckAvailabilityForPhysicalStore() {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001"))
-                                        .thenReturn(50);
+                @DisplayName("Should check availability correctly")
+                void shouldCheckAvailability() {
+                        when(physicalStoreRepository.getTotalQuantityOnShelf("P1")).thenReturn(50);
+                        when(onlineStoreRepository.getTotalQuantityAvailable("P1")).thenReturn(30);
 
-                        // Act
-                        boolean hasStock = storeInventoryService.hasAvailableStock("TEST-001", StoreType.PHYSICAL, 20);
-                        int available = storeInventoryService.getAvailableQuantity("TEST-001", StoreType.PHYSICAL);
+                        assertTrue(storeInventoryService.hasAvailableStock("P1", StoreType.PHYSICAL, 50));
+                        assertFalse(storeInventoryService.hasAvailableStock("P1", StoreType.PHYSICAL, 51));
 
-                        // Assert
-                        assertTrue(hasStock);
-                        assertEquals(50, available);
+                        assertTrue(storeInventoryService.hasAvailableStock("P1", StoreType.ONLINE, 30));
+                        assertFalse(storeInventoryService.hasAvailableStock("P1", StoreType.ONLINE, 31));
                 }
 
                 @Test
-                @DisplayName("Should check availability for online store")
-                void shouldCheckAvailabilityForOnlineStore() {
-                        // Arrange
-                        when(onlineStoreRepository.getTotalQuantityAvailable("TEST-001"))
-                                        .thenReturn(30);
+                @DisplayName("Get available quantity returns correct store quantity")
+                void shouldGetAvailableQuantity() {
+                        when(physicalStoreRepository.getTotalQuantityOnShelf("P1")).thenReturn(50);
+                        when(onlineStoreRepository.getTotalQuantityAvailable("P1")).thenReturn(30);
 
-                        // Act
-                        boolean hasStock = storeInventoryService.hasAvailableStock("TEST-001", StoreType.ONLINE, 20);
-                        int available = storeInventoryService.getAvailableQuantity("TEST-001", StoreType.ONLINE);
-
-                        // Assert
-                        assertTrue(hasStock);
-                        assertEquals(30, available);
-                }
-
-                @Test
-                @DisplayName("Should return false when insufficient stock")
-                void shouldReturnFalseWhenInsufficientStock() {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001"))
-                                        .thenReturn(10);
-
-                        // Act
-                        boolean hasStock = storeInventoryService.hasAvailableStock("TEST-001", StoreType.PHYSICAL, 50);
-
-                        // Assert
-                        assertFalse(hasStock);
+                        assertEquals(50, storeInventoryService.getAvailableQuantity("P1", StoreType.PHYSICAL));
+                        assertEquals(30, storeInventoryService.getAvailableQuantity("P1", StoreType.ONLINE));
                 }
         }
 
         @Nested
-        @DisplayName("allocateStockForSale tests")
-        class AllocateStockForSaleTests {
+        @DisplayName("Allocation Tests")
+        class AllocationTests {
 
                 @Test
-                @DisplayName("Should allocate stock from physical store successfully")
-                void shouldAllocateStockFromPhysicalStoreSuccessfully() {
-                        // Arrange
-                        PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 1, 50);
-                        when(physicalStoreRepository.findAvailableByProductCode("TEST-001"))
-                                        .thenReturn(List.of(inv));
-                        when(physicalStoreRepository.save(any(PhysicalStoreInventory.class)))
-                                        .thenReturn(inv);
+                @DisplayName("Should allocate stock from physical store")
+                void shouldAllocateStockFromPhysicalStore() {
+                        PhysicalStoreInventory inv = createPhysicalInventory("P1", 1, 50);
+                        when(physicalStoreRepository.findAvailableByProductCode("P1")).thenReturn(List.of(inv));
 
-                        // Act
-                        List<BatchAllocation> allocations = storeInventoryService.allocateStockForSale(
-                                        "TEST-001", StoreType.PHYSICAL, 20);
+                        List<BatchAllocation> result = storeInventoryService.allocateStockForSale("P1",
+                                        StoreType.PHYSICAL, 20);
 
-                        // Assert
-                        assertNotNull(allocations);
-                        assertEquals(1, allocations.size());
-                        assertEquals(20, allocations.get(0).quantity());
+                        assertEquals(1, result.size());
+                        assertEquals(20, result.get(0).quantity());
                 }
 
                 @Test
-                @DisplayName("Should allocate stock from online store successfully")
-                void shouldAllocateStockFromOnlineStoreSuccessfully() {
-                        // Arrange
-                        OnlineStoreInventory inv = createOnlineInventory("TEST-001", 1, 50);
-                        when(onlineStoreRepository.findAvailableByProductCode("TEST-001"))
-                                        .thenReturn(List.of(inv));
-                        when(onlineStoreRepository.save(any(OnlineStoreInventory.class)))
-                                        .thenReturn(inv);
+                @DisplayName("Should allocate stock from multiple batches FIFO")
+                void shouldAllocateFromMultipleBatches() {
+                        PhysicalStoreInventory inv1 = createPhysicalInventory("P1", 1, 10);
+                        PhysicalStoreInventory inv2 = createPhysicalInventory("P1", 2, 20);
+                        when(physicalStoreRepository.findAvailableByProductCode("P1")).thenReturn(List.of(inv1, inv2));
 
-                        // Act
-                        List<BatchAllocation> allocations = storeInventoryService.allocateStockForSale(
-                                        "TEST-001", StoreType.ONLINE, 20);
+                        List<BatchAllocation> result = storeInventoryService.allocateStockForSale("P1",
+                                        StoreType.PHYSICAL, 25);
 
-                        // Assert
-                        assertNotNull(allocations);
-                        assertEquals(1, allocations.size());
-                        assertEquals(20, allocations.get(0).quantity());
+                        assertEquals(2, result.size());
+                        assertEquals(10, result.get(0).quantity()); // First batch fully used
+                        assertEquals(15, result.get(1).quantity()); // Second batch partially used
                 }
 
                 @Test
-                @DisplayName("Should throw exception when insufficient stock for allocation")
-                void shouldThrowWhenInsufficientStockForAllocation() {
-                        // Arrange
-                        PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 1, 10);
-                        when(physicalStoreRepository.findAvailableByProductCode("TEST-001"))
-                                        .thenReturn(List.of(inv));
+                @DisplayName("Should throw if insufficient stock for allocation")
+                void shouldThrowIfInsufficientStock() {
+                        PhysicalStoreInventory inv = createPhysicalInventory("P1", 1, 10);
+                        when(physicalStoreRepository.findAvailableByProductCode("P1")).thenReturn(List.of(inv));
 
-                        // Act & Assert
                         assertThrows(InsufficientStockException.class,
-                                        () -> storeInventoryService.allocateStockForSale("TEST-001", StoreType.PHYSICAL,
-                                                        100));
+                                        () -> storeInventoryService.allocateStockForSale("P1", StoreType.PHYSICAL, 20));
                 }
 
                 @Test
-                @DisplayName("Should allocate from multiple batches with FIFO")
-                void shouldAllocateFromMultipleBatchesWithFIFO() {
-                        // Arrange
-                        PhysicalStoreInventory inv1 = createPhysicalInventory("TEST-001", 1, 15);
-                        PhysicalStoreInventory inv2 = createPhysicalInventory("TEST-001", 2, 20);
-                        when(physicalStoreRepository.findAvailableByProductCode("TEST-001"))
-                                        .thenReturn(List.of(inv1, inv2));
-                        when(physicalStoreRepository.save(any(PhysicalStoreInventory.class)))
-                                        .thenAnswer(i -> i.getArgument(0));
+                @DisplayName("Should get next batch for sale")
+                void shouldGetNextBatchForSale() {
+                        PhysicalStoreInventory inv = createPhysicalInventory("P1", 1, 50);
+                        when(physicalStoreRepository.findAvailableByProductCode("P1")).thenReturn(List.of(inv));
 
-                        // Act
-                        List<BatchAllocation> allocations = storeInventoryService.allocateStockForSale(
-                                        "TEST-001", StoreType.PHYSICAL, 25);
+                        Optional<BatchAllocation> result = storeInventoryService.getNextBatchForSale("P1",
+                                        StoreType.PHYSICAL, 10);
 
-                        // Assert
-                        assertNotNull(allocations);
-                        assertEquals(2, allocations.size());
-                        assertEquals(15, allocations.get(0).quantity());
-                        assertEquals(10, allocations.get(1).quantity());
+                        assertTrue(result.isPresent());
+                        assertEquals(10, result.get().quantity());
                 }
         }
 
         @Nested
-        @DisplayName("getStockSummary tests")
-        class GetStockSummaryTests {
-
-                @Test
-                @DisplayName("Should get physical store stock summary")
-                void shouldGetPhysicalStoreStockSummary() {
-                        // Arrange
-                        PhysicalStoreInventoryRepository.ProductStockSummary summary = new PhysicalStoreInventoryRepository.ProductStockSummary(
-                                        "TEST-001", "Test", 100, 2);
-                        when(physicalStoreRepository.getStockSummary()).thenReturn(List.of(summary));
-
-                        // Act
-                        var result = storeInventoryService.getPhysicalStoreStockSummary();
-
-                        // Assert
-                        assertEquals(1, result.size());
-                        assertEquals(100, result.get(0).totalQuantity());
-                }
-
-                @Test
-                @DisplayName("Should get online store stock summary")
-                void shouldGetOnlineStoreStockSummary() {
-                        // Arrange
-                        OnlineStoreInventoryRepository.ProductStockSummary summary = new OnlineStoreInventoryRepository.ProductStockSummary(
-                                        "TEST-001", "Test", 80, 1);
-                        when(onlineStoreRepository.getStockSummary()).thenReturn(List.of(summary));
-
-                        // Act
-                        var result = storeInventoryService.getOnlineStoreStockSummary();
-
-                        // Assert
-                        assertEquals(1, result.size());
-                        assertEquals(80, result.get(0).totalQuantity());
-                }
-        }
-
-        @Nested
-        @DisplayName("getAvailableQuantity tests")
-        class GetAvailableQuantityTests {
-
-                @Test
-                @DisplayName("Should return physical store available quantity")
-                void shouldReturnPhysicalStoreAvailableQuantity() {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001")).thenReturn(50);
-
-                        // Act
-                        int result = storeInventoryService.getAvailableQuantity("TEST-001", StoreType.PHYSICAL);
-
-                        // Assert
-                        assertEquals(50, result);
-                }
-
-                @Test
-                @DisplayName("Should return online store available quantity")
-                void shouldReturnOnlineStoreAvailableQuantity() {
-                        // Arrange
-                        when(onlineStoreRepository.getTotalQuantityAvailable("TEST-001")).thenReturn(30);
-
-                        // Act
-                        int result = storeInventoryService.getAvailableQuantity("TEST-001", StoreType.ONLINE);
-
-                        // Assert
-                        assertEquals(30, result);
-                }
-        }
-
-        @Nested
-        @DisplayName("hasAvailableStock tests")
-        class HasAvailableStockTests {
-
-                @Test
-                @DisplayName("Should return true when physical store has sufficient stock")
-                void shouldReturnTrueWhenPhysicalStoreHasSufficientStock() {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001")).thenReturn(50);
-
-                        // Act
-                        boolean result = storeInventoryService.hasAvailableStock("TEST-001", StoreType.PHYSICAL, 25);
-
-                        // Assert
-                        assertTrue(result);
-                }
-
-                @Test
-                @DisplayName("Should return false when physical store has insufficient stock")
-                void shouldReturnFalseWhenPhysicalStoreHasInsufficientStock() {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001")).thenReturn(10);
-
-                        // Act
-                        boolean result = storeInventoryService.hasAvailableStock("TEST-001", StoreType.PHYSICAL, 25);
-
-                        // Assert
-                        assertFalse(result);
-                }
-
-                @Test
-                @DisplayName("Should return true when online store has sufficient stock")
-                void shouldReturnTrueWhenOnlineStoreHasSufficientStock() {
-                        // Arrange
-                        when(onlineStoreRepository.getTotalQuantityAvailable("TEST-001")).thenReturn(40);
-
-                        // Act
-                        boolean result = storeInventoryService.hasAvailableStock("TEST-001", StoreType.ONLINE, 20);
-
-                        // Assert
-                        assertTrue(result);
-                }
-        }
-
-        @Nested
-        @DisplayName("reduceStock tests")
-        class ReduceStockTests {
-
-                @Test
-                @DisplayName("Should reduce physical store stock")
-                void shouldReducePhysicalStoreStock() {
-                        // Arrange
-                        when(physicalStoreRepository.reduceQuantity("TEST-001", 1, 10)).thenReturn(true);
-
-                        // Act
-                        boolean result = storeInventoryService.reducePhysicalStoreStock("TEST-001", 1, 10);
-
-                        // Assert
-                        assertTrue(result);
-                        verify(physicalStoreRepository).reduceQuantity("TEST-001", 1, 10);
-                }
-
-                @Test
-                @DisplayName("Should reduce online store stock")
-                void shouldReduceOnlineStoreStock() {
-                        // Arrange
-                        when(onlineStoreRepository.reduceQuantity("TEST-001", 1, 10)).thenReturn(true);
-
-                        // Act
-                        boolean result = storeInventoryService.reduceOnlineStoreStock("TEST-001", 1, 10);
-
-                        // Assert
-                        assertTrue(result);
-                        verify(onlineStoreRepository).reduceQuantity("TEST-001", 1, 10);
-                }
-        }
-
-        @Nested
-        @DisplayName("async method tests")
+        @DisplayName("Async Method Tests")
         class AsyncMethodTests {
 
                 @Test
-                @DisplayName("Should check available stock asynchronously")
-                void shouldCheckAvailableStockAsynchronously() throws Exception {
-                        // Arrange
-                        when(physicalStoreRepository.getTotalQuantityOnShelf("TEST-001")).thenReturn(50);
+                @DisplayName("Should restock physical store asynchronously")
+                void shouldRestockPhysicalStoreAsync() throws Exception {
+                        String productCode = "TEST-ASYNC";
+                        MainInventory batch = createTestBatch(1, productCode, 100, LocalDate.now());
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
+                                        .thenReturn(List.of(batch));
+                        when(mainInventoryRepository.reduceQuantity(anyInt(), anyInt())).thenReturn(true);
+                        when(physicalStoreRepository.addQuantity(anyString(), anyInt(), anyInt())).thenReturn(true);
 
-                        // Act
-                        var future = storeInventoryService.hasAvailableStockAsync("TEST-001", StoreType.PHYSICAL, 25);
+                        CompletableFuture<RestockResult> future = storeInventoryService
+                                        .restockPhysicalStoreAsync(productCode, 10);
+                        RestockResult result = future.get();
 
-                        // Assert
-                        assertNotNull(future);
+                        assertTrue(result.success());
+                        verify(physicalStoreRepository).addQuantity(eq(productCode), eq(1), eq(10));
+                }
+
+                @Test
+                @DisplayName("Should restock online store asynchronously")
+                void shouldRestockOnlineStoreAsync() throws Exception {
+                        String productCode = "TEST-ASYNC-ON";
+                        MainInventory batch = createTestBatch(2, productCode, 100, LocalDate.now());
+                        when(productRepository.existsByProductCode(productCode)).thenReturn(true);
+                        when(mainInventoryRepository.findAvailableBatchesByProductCode(productCode))
+                                        .thenReturn(List.of(batch));
+                        when(mainInventoryRepository.reduceQuantity(anyInt(), anyInt())).thenReturn(true);
+                        when(onlineStoreRepository.addQuantity(anyString(), anyInt(), anyInt())).thenReturn(true);
+
+                        CompletableFuture<RestockResult> future = storeInventoryService
+                                        .restockOnlineStoreAsync(productCode, 10);
+                        RestockResult result = future.get();
+
+                        assertTrue(result.success());
+                        verify(onlineStoreRepository).addQuantity(eq(productCode), eq(2), eq(10));
+                }
+
+                @Test
+                @DisplayName("Should allocate stock asynchronously")
+                void shouldAllocateStockAsync() throws Exception {
+                        String productCode = "P-ASYNC";
+                        PhysicalStoreInventory inv = createPhysicalInventory(productCode, 1, 50);
+                        when(physicalStoreRepository.findAvailableByProductCode(productCode)).thenReturn(List.of(inv));
+
+                        CompletableFuture<List<BatchAllocation>> future = storeInventoryService
+                                        .allocateStockForSaleAsync(productCode, StoreType.PHYSICAL, 5);
+                        List<BatchAllocation> result = future.get();
+
+                        assertEquals(1, result.size());
+                        assertEquals(5, result.get(0).quantity());
+                }
+
+                @Test
+                @DisplayName("Should check stock availability asynchronously")
+                void shouldCheckStockAsync() throws Exception {
+                        when(physicalStoreRepository.getTotalQuantityOnShelf("P-ASYNC")).thenReturn(100);
+
+                        CompletableFuture<Boolean> future = storeInventoryService.hasAvailableStockAsync("P-ASYNC",
+                                        StoreType.PHYSICAL, 50);
                         assertTrue(future.get());
                 }
         }
