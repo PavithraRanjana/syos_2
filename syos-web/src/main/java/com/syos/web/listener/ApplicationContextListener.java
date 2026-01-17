@@ -48,6 +48,12 @@ public class ApplicationContextListener implements ServletContextListener {
             initializeServices();
             logger.info("Service Registry initialized successfully");
 
+            // Start background tasks
+            logger.info("Starting background scheduled tasks...");
+            BackgroundTaskService backgroundTaskService = ServiceRegistry.get(BackgroundTaskService.class);
+            backgroundTaskService.startScheduledTasks();
+            logger.info("Background tasks started");
+
             // Store context attributes
             sce.getServletContext().setAttribute("appName", "SYOS Retail Management System");
             sce.getServletContext().setAttribute("appVersion", "2.0.0");
@@ -69,6 +75,13 @@ public class ApplicationContextListener implements ServletContextListener {
         logger.info("==============================================");
 
         try {
+            // Stop background tasks first
+            logger.info("Stopping background tasks...");
+            BackgroundTaskService backgroundTaskService = ServiceRegistry.get(BackgroundTaskService.class);
+            if (backgroundTaskService != null) {
+                backgroundTaskService.stopScheduledTasks();
+            }
+
             // Shutdown thread pools
             logger.info("Shutting down Thread Pools...");
             ThreadPoolConfig.shutdownAll();
@@ -151,22 +164,20 @@ public class ApplicationContextListener implements ServletContextListener {
 
         // Store inventory service
         StoreInventoryService storeInventoryService = new StoreInventoryServiceImpl(
-            physicalStoreRepository,
-            onlineStoreRepository,
-            mainInventoryRepository,
-            transactionRepository,
-            productRepository
-        );
+                physicalStoreRepository,
+                onlineStoreRepository,
+                mainInventoryRepository,
+                transactionRepository,
+                productRepository);
         ServiceRegistry.register(StoreInventoryService.class, storeInventoryService);
 
         // Billing service
         BillingService billingService = new BillingServiceImpl(
-            billRepository,
-            billItemRepository,
-            productRepository,
-            storeInventoryService,
-            transactionRepository
-        );
+                billRepository,
+                billItemRepository,
+                productRepository,
+                storeInventoryService,
+                transactionRepository);
         ServiceRegistry.register(BillingService.class, billingService);
 
         // Customer service
@@ -175,14 +186,20 @@ public class ApplicationContextListener implements ServletContextListener {
 
         // Report service
         ReportService reportService = new ReportServiceImpl(
-            billRepository,
-            billItemRepository,
-            mainInventoryRepository,
-            physicalStoreRepository,
-            onlineStoreRepository,
-            productRepository
-        );
+                billRepository,
+                billItemRepository,
+                mainInventoryRepository,
+                physicalStoreRepository,
+                onlineStoreRepository,
+                productRepository);
         ServiceRegistry.register(ReportService.class, reportService);
+
+        // Background task service
+        BackgroundTaskService backgroundTaskService = new BackgroundTaskServiceImpl(
+                inventoryService,
+                storeInventoryService,
+                reportService);
+        ServiceRegistry.register(BackgroundTaskService.class, backgroundTaskService);
 
         // Cart service (for online shopping)
         CartService cartService = new CartServiceImpl(productService, storeInventoryService);
@@ -193,12 +210,11 @@ public class ApplicationContextListener implements ServletContextListener {
         ServiceRegistry.register(OrderRepository.class, orderRepository);
 
         OrderService orderService = new OrderServiceImpl(
-            orderRepository,
-            cartService,
-            customerService,
-            inventoryService,
-            billingService
-        );
+                orderRepository,
+                cartService,
+                customerService,
+                inventoryService,
+                billingService);
         ServiceRegistry.register(OrderService.class, orderService);
 
         logger.info("Services registered. Total: {}", ServiceRegistry.getServiceCount());

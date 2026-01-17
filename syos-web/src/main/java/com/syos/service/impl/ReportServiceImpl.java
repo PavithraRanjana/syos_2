@@ -23,6 +23,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import com.syos.config.ThreadPoolConfig;
 
 /**
  * Implementation of ReportService.
@@ -593,6 +596,41 @@ public class ReportServiceImpl implements ReportService {
                 weekSales,
                 monthSales,
                 topProducts);
+    }
+
+    // ==================== Async Operations (using ApiThreadPool)
+    // ====================
+
+    @Override
+    public CompletableFuture<DashboardSummary> getDashboardSummaryAsync() {
+        logger.debug("[ASYNC] Submitting getDashboardSummary to ApiThreadPool");
+        return CompletableFuture.supplyAsync(
+                this::getDashboardSummary,
+                ThreadPoolConfig.getApiThreadPool());
+    }
+
+    @Override
+    public CompletableFuture<List<DailySalesReport>> getDailySalesReportAsync(LocalDate startDate, LocalDate endDate) {
+        logger.debug("[ASYNC] Submitting getDailySalesReport to ApiThreadPool: {} to {}", startDate, endDate);
+        return CompletableFuture.supplyAsync(
+                () -> getDailySalesReport(startDate, endDate),
+                ThreadPoolConfig.getApiThreadPool());
+    }
+
+    @Override
+    public CompletableFuture<List<StockLevelReport>> getCurrentStockLevelsAsync(StoreType storeType) {
+        logger.debug("[ASYNC] Submitting getCurrentStockLevels to ApiThreadPool: {}", storeType);
+        return CompletableFuture.supplyAsync(
+                () -> getCurrentStockLevels(storeType),
+                ThreadPoolConfig.getApiThreadPool());
+    }
+
+    @Override
+    public CompletableFuture<BillReport> getBillReportAsync(LocalDate date, StoreType storeType) {
+        logger.debug("[ASYNC] Submitting getBillReport to ApiThreadPool: {} {}", date, storeType);
+        return CompletableFuture.supplyAsync(
+                () -> getBillReport(date, storeType),
+                ThreadPoolConfig.getApiThreadPool());
     }
 
     // ==================== Helper Methods ====================

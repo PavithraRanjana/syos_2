@@ -24,9 +24,13 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+import com.syos.config.ThreadPoolConfig;
 
 /**
- * Implementation of StoreInventoryService for managing physical and online store inventories.
+ * Implementation of StoreInventoryService for managing physical and online
+ * store inventories.
  */
 public class StoreInventoryServiceImpl implements StoreInventoryService {
 
@@ -73,7 +77,8 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         // FIFO - process batches in order (already sorted by expiry date)
         for (MainInventory batch : availableBatches) {
-            if (remainingQuantity <= 0) break;
+            if (remainingQuantity <= 0)
+                break;
 
             int available = batch.getRemainingQuantity();
             int toRestock = Math.min(available, remainingQuantity);
@@ -87,7 +92,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
                     // Log transaction
                     logTransaction(productCode, batch.getMainInventoryId(), InventoryTransactionType.RESTOCK_PHYSICAL,
-                        StoreType.PHYSICAL, toRestock, "Restocked to physical store shelves");
+                            StoreType.PHYSICAL, toRestock, "Restocked to physical store shelves");
 
                     totalRestocked += toRestock;
                     remainingQuantity -= toRestock;
@@ -103,10 +108,11 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         if (totalRestocked < quantity) {
             logger.warn("Partial restock for {}: requested {}, restocked {}", productCode, quantity, totalRestocked);
             return RestockResult.partial(totalRestocked, batchesUsed,
-                "Partial restock: only " + totalRestocked + " of " + quantity + " units available");
+                    "Partial restock: only " + totalRestocked + " of " + quantity + " units available");
         }
 
-        logger.info("Restocked physical store: {} quantity: {} from {} batches", productCode, totalRestocked, batchesUsed);
+        logger.info("Restocked physical store: {} quantity: {} from {} batches", productCode, totalRestocked,
+                batchesUsed);
         return RestockResult.success(totalRestocked, batchesUsed);
     }
 
@@ -130,7 +136,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         // Log transaction
         logTransaction(productCode, batchId, InventoryTransactionType.RESTOCK_PHYSICAL,
-            StoreType.PHYSICAL, quantity, "Restocked to physical store from batch " + batchId);
+                StoreType.PHYSICAL, quantity, "Restocked to physical store from batch " + batchId);
 
         logger.info("Restocked physical store from batch {}: {} quantity: {}", batchId, productCode, quantity);
         return true;
@@ -153,10 +159,11 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
     @Override
     public List<ProductStockSummary> getPhysicalStoreStockSummary() {
-        // Convert from PhysicalStoreInventoryRepository.ProductStockSummary to common type
+        // Convert from PhysicalStoreInventoryRepository.ProductStockSummary to common
+        // type
         return physicalStoreRepository.getStockSummary().stream()
-            .map(s -> new ProductStockSummary(s.productCode(), s.productName(), s.totalQuantity(), s.batchCount()))
-            .toList();
+                .map(s -> new ProductStockSummary(s.productCode(), s.productName(), s.totalQuantity(), s.batchCount()))
+                .toList();
     }
 
     @Override
@@ -186,7 +193,8 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         // FIFO - process batches in order (already sorted by expiry date)
         for (MainInventory batch : availableBatches) {
-            if (remainingQuantity <= 0) break;
+            if (remainingQuantity <= 0)
+                break;
 
             int available = batch.getRemainingQuantity();
             int toRestock = Math.min(available, remainingQuantity);
@@ -200,7 +208,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
                     // Log transaction
                     logTransaction(productCode, batch.getMainInventoryId(), InventoryTransactionType.RESTOCK_ONLINE,
-                        StoreType.ONLINE, toRestock, "Restocked to online store");
+                            StoreType.ONLINE, toRestock, "Restocked to online store");
 
                     totalRestocked += toRestock;
                     remainingQuantity -= toRestock;
@@ -216,10 +224,11 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         if (totalRestocked < quantity) {
             logger.warn("Partial restock for {}: requested {}, restocked {}", productCode, quantity, totalRestocked);
             return RestockResult.partial(totalRestocked, batchesUsed,
-                "Partial restock: only " + totalRestocked + " of " + quantity + " units available");
+                    "Partial restock: only " + totalRestocked + " of " + quantity + " units available");
         }
 
-        logger.info("Restocked online store: {} quantity: {} from {} batches", productCode, totalRestocked, batchesUsed);
+        logger.info("Restocked online store: {} quantity: {} from {} batches", productCode, totalRestocked,
+                batchesUsed);
         return RestockResult.success(totalRestocked, batchesUsed);
     }
 
@@ -243,7 +252,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
 
         // Log transaction
         logTransaction(productCode, batchId, InventoryTransactionType.RESTOCK_ONLINE,
-            StoreType.ONLINE, quantity, "Restocked to online store from batch " + batchId);
+                StoreType.ONLINE, quantity, "Restocked to online store from batch " + batchId);
 
         logger.info("Restocked online store from batch {}: {} quantity: {}", batchId, productCode, quantity);
         return true;
@@ -291,7 +300,8 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     }
 
     @Override
-    public Optional<BatchAllocation> getNextBatchForSale(String productCode, StoreType storeType, int requiredQuantity) {
+    public Optional<BatchAllocation> getNextBatchForSale(String productCode, StoreType storeType,
+            int requiredQuantity) {
         List<BatchAllocation> allocations = allocateStockForSale(productCode, storeType, requiredQuantity);
         return allocations.isEmpty() ? Optional.empty() : Optional.of(allocations.get(0));
     }
@@ -306,32 +316,32 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         if (storeType == StoreType.PHYSICAL) {
             List<PhysicalStoreInventory> available = physicalStoreRepository.findAvailableByProductCode(productCode);
             for (PhysicalStoreInventory inv : available) {
-                if (remainingQuantity <= 0) break;
+                if (remainingQuantity <= 0)
+                    break;
 
                 int toAllocate = Math.min(inv.getQuantityOnShelf(), remainingQuantity);
                 if (toAllocate > 0) {
                     allocations.add(new BatchAllocation(
-                        inv.getMainInventoryId(),
-                        productCode,
-                        toAllocate,
-                        inv.getExpiryDate()
-                    ));
+                            inv.getMainInventoryId(),
+                            productCode,
+                            toAllocate,
+                            inv.getExpiryDate()));
                     remainingQuantity -= toAllocate;
                 }
             }
         } else {
             List<OnlineStoreInventory> available = onlineStoreRepository.findAvailableByProductCode(productCode);
             for (OnlineStoreInventory inv : available) {
-                if (remainingQuantity <= 0) break;
+                if (remainingQuantity <= 0)
+                    break;
 
                 int toAllocate = Math.min(inv.getQuantityAvailable(), remainingQuantity);
                 if (toAllocate > 0) {
                     allocations.add(new BatchAllocation(
-                        inv.getMainInventoryId(),
-                        productCode,
-                        toAllocate,
-                        inv.getExpiryDate()
-                    ));
+                            inv.getMainInventoryId(),
+                            productCode,
+                            toAllocate,
+                            inv.getExpiryDate()));
                     remainingQuantity -= toAllocate;
                 }
             }
@@ -345,6 +355,47 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
         return allocations;
     }
 
+    // ==================== Async Operations (using InventoryThreadPool)
+    // ====================
+
+    @Override
+    public CompletableFuture<RestockResult> restockPhysicalStoreAsync(String productCode, int quantity) {
+        logger.debug("[ASYNC] Submitting restockPhysicalStore to InventoryThreadPool: {} quantity: {}", productCode,
+                quantity);
+        return CompletableFuture.supplyAsync(
+                () -> restockPhysicalStore(productCode, quantity),
+                ThreadPoolConfig.getInventoryThreadPool());
+    }
+
+    @Override
+    public CompletableFuture<RestockResult> restockOnlineStoreAsync(String productCode, int quantity) {
+        logger.debug("[ASYNC] Submitting restockOnlineStore to InventoryThreadPool: {} quantity: {}", productCode,
+                quantity);
+        return CompletableFuture.supplyAsync(
+                () -> restockOnlineStore(productCode, quantity),
+                ThreadPoolConfig.getInventoryThreadPool());
+    }
+
+    @Override
+    public CompletableFuture<List<BatchAllocation>> allocateStockForSaleAsync(String productCode, StoreType storeType,
+            int quantity) {
+        logger.debug("[ASYNC] Submitting allocateStockForSale to InventoryThreadPool: {} store: {} quantity: {}",
+                productCode, storeType, quantity);
+        return CompletableFuture.supplyAsync(
+                () -> allocateStockForSale(productCode, storeType, quantity),
+                ThreadPoolConfig.getInventoryThreadPool());
+    }
+
+    @Override
+    public CompletableFuture<Boolean> hasAvailableStockAsync(String productCode, StoreType storeType,
+            int requiredQuantity) {
+        logger.debug("[ASYNC] Submitting hasAvailableStock to InventoryThreadPool: {} store: {} qty: {}", productCode,
+                storeType, requiredQuantity);
+        return CompletableFuture.supplyAsync(
+                () -> hasAvailableStock(productCode, storeType, requiredQuantity),
+                ThreadPoolConfig.getInventoryThreadPool());
+    }
+
     // ==================== Helper Methods ====================
 
     private void validateProductExists(String productCode) {
@@ -354,7 +405,7 @@ public class StoreInventoryServiceImpl implements StoreInventoryService {
     }
 
     private void logTransaction(String productCode, Integer batchId, InventoryTransactionType type,
-                                 StoreType storeType, int quantity, String remarks) {
+            StoreType storeType, int quantity, String remarks) {
         InventoryTransaction transaction = new InventoryTransaction();
         transaction.setProductCode(new ProductCode(productCode));
         transaction.setMainInventoryId(batchId);

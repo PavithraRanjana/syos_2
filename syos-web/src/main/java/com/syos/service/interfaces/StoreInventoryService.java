@@ -7,9 +7,11 @@ import com.syos.repository.interfaces.OnlineStoreInventoryRepository.ProductStoc
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Service interface for Store Inventory management (Physical and Online stores).
+ * Service interface for Store Inventory management (Physical and Online
+ * stores).
  * Handles restocking from main inventory and stock queries for sales.
  */
 public interface StoreInventoryService {
@@ -113,25 +115,52 @@ public interface StoreInventoryService {
      */
     List<BatchAllocation> allocateStockForSale(String productCode, StoreType storeType, int quantity);
 
+    // ==================== Async Operations (using InventoryThreadPool)
+    // ====================
+
+    /**
+     * Async version of restockPhysicalStore.
+     * Executes on the InventoryThreadPool.
+     */
+    CompletableFuture<RestockResult> restockPhysicalStoreAsync(String productCode, int quantity);
+
+    /**
+     * Async version of restockOnlineStore.
+     * Executes on the InventoryThreadPool.
+     */
+    CompletableFuture<RestockResult> restockOnlineStoreAsync(String productCode, int quantity);
+
+    /**
+     * Async version of allocateStockForSale.
+     * Executes on the InventoryThreadPool.
+     */
+    CompletableFuture<List<BatchAllocation>> allocateStockForSaleAsync(String productCode, StoreType storeType,
+            int quantity);
+
+    /**
+     * Async check for stock availability.
+     * Executes on the InventoryThreadPool.
+     */
+    CompletableFuture<Boolean> hasAvailableStockAsync(String productCode, StoreType storeType, int requiredQuantity);
+
     /**
      * Batch allocation result for sales.
      */
     record BatchAllocation(
-        Integer batchId,
-        String productCode,
-        int quantity,
-        java.time.LocalDate expiryDate
-    ) {}
+            Integer batchId,
+            String productCode,
+            int quantity,
+            java.time.LocalDate expiryDate) {
+    }
 
     /**
      * Result of a restock operation.
      */
     record RestockResult(
-        boolean success,
-        int quantityRestocked,
-        int batchesUsed,
-        String message
-    ) {
+            boolean success,
+            int quantityRestocked,
+            int batchesUsed,
+            String message) {
         public static RestockResult success(int quantity, int batches) {
             return new RestockResult(true, quantity, batches, "Restock successful");
         }
