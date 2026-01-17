@@ -6,6 +6,10 @@ import com.syos.domain.valueobjects.Money;
 import com.syos.exception.ValidationException;
 import com.syos.repository.interfaces.OrderRepository;
 import com.syos.service.impl.OrderServiceImpl;
+import com.syos.service.interfaces.OrderService.OrderRequest;
+import com.syos.domain.valueobjects.ProductCode;
+import com.syos.domain.enums.StoreType;
+import com.syos.domain.enums.TransactionType;
 import com.syos.service.interfaces.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,7 +70,95 @@ class OrderServiceImplTest {
     }
 
     @Nested
-    @DisplayName("findById tests")
+    @DisplayName("createOrderFromCart tests")
+    class CreateOrderTests {
+
+        @Test
+        @DisplayName("Should create order successfully from cart")
+        void shouldCreateOrderFromCart() {
+            // Arrange
+            Integer customerId = 1;
+            Customer customer = new Customer("John Doe", "john@example.com", "1234567890", "Address");
+            customer.setCustomerId(customerId);
+
+            Cart cart = new Cart(customerId);
+            cart.addItem(new CartItem(new ProductCode("P1"), "Product 1", new Money(100.00), 2));
+
+            OrderRequest request = new OrderRequest("Shipping Addr", "0771234567", "Notes", TransactionType.ONLINE);
+
+            when(customerService.findById(customerId)).thenReturn(Optional.of(customer));
+            when(cartService.getCart(customerId)).thenReturn(Optional.of(cart));
+            when(cartService.validateCartStockDetails(customerId))
+                    .thenReturn(new CartService.StockValidationResult(true, List.of()));
+
+            Bill bill = new Bill();
+            bill.setStoreType(StoreType.ONLINE);
+            bill.setTransactionType(TransactionType.ONLINE);
+            bill.setCustomerId(customerId);
+            bill.setBillId(100);
+            when(billingService.createBill(any(), any(), any(), any())).thenReturn(bill);
+
+            when(orderRepository.save(any(Order.class))).thenAnswer(i -> {
+                Order o = i.getArgument(0);
+                o.setOrderId(1);
+                o.setOrderNumber("ORD-00000001");
+                return o;
+            });
+
+            // Act
+            Order result = orderService.createOrderFromCart(customerId, request);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(OrderStatus.PENDING, result.getStatus());
+            assertEquals(1, result.getOrderId());
+            assertEquals("Shipping Addr", result.getShippingAddress());
+            verify(cartService).clearCart(customerId);
+            verify(billingService).finalizeBill(100);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when customer not found")
+        void shouldThrowWhenCustomerNotFound() {
+            Integer customerId = 999;
+            when(customerService.findById(customerId)).thenReturn(Optional.empty());
+
+            assertThrows(ValidationException.class,
+                    () -> orderService.createOrderFromCart(customerId, new OrderRequest(null, null, null, null)));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when cart is empty")
+        void shouldThrowWhenCartIsEmpty() {
+            Integer customerId = 1;
+            Customer customer = new Customer();
+            when(customerService.findById(customerId)).thenReturn(Optional.of(customer));
+            when(cartService.getCart(customerId)).thenReturn(Optional.of(new Cart(customerId))); // Empty cart
+
+            assertThrows(ValidationException.class,
+                    () -> orderService.createOrderFromCart(customerId, new OrderRequest(null, null, null, null)));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when stock validation fails")
+        void shouldThrowWhenStockValidationFails() {
+            Integer customerId = 1;
+            Customer customer = new Customer();
+            Cart cart = new Cart(customerId);
+            cart.addItem(new CartItem(new ProductCode("P1"), "Product 1", new Money(100.00), 10));
+
+            when(customerService.findById(customerId)).thenReturn(Optional.of(customer));
+            when(cartService.getCart(customerId)).thenReturn(Optional.of(cart));
+
+            CartService.StockIssue issue = new CartService.StockIssue("P1", "Product 1", 10, 5);
+            when(cartService.validateCartStockDetails(customerId)).thenReturn(
+                    new CartService.StockValidationResult(false, List.of(issue)));
+
+            assertThrows(ValidationException.class,
+                    () -> orderService.createOrderFromCart(customerId, new OrderRequest(null, null, null, null)));
+        }
+    }
+
     class FindByIdTests {
 
         @Test
@@ -231,6 +323,13 @@ class OrderServiceImplTest {
             assertNotNull(result);
             verify(orderRepository).save(any(Order.class));
         }
+
+        @Test
+        @DisplayName("Should throw exception when order not found")
+        void shouldThrowWhenOrderNotFound() {
+            when(orderRepository.findById(999)).thenReturn(Optional.empty());
+            assertThrows(ValidationException.class, () -> orderService.startProcessing(999));
+        }
     }
 
     @Nested
@@ -252,6 +351,13 @@ class OrderServiceImplTest {
             assertNotNull(result);
             verify(orderRepository).save(any(Order.class));
         }
+
+        @Test
+        @DisplayName("Should throw exception when order not found")
+        void shouldThrowWhenOrderNotFound() {
+            when(orderRepository.findById(999)).thenReturn(Optional.empty());
+            assertThrows(ValidationException.class, () -> orderService.shipOrder(999));
+        }
     }
 
     @Nested
@@ -272,6 +378,13 @@ class OrderServiceImplTest {
             // Assert
             assertNotNull(result);
             verify(orderRepository).save(any(Order.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when order not found")
+        void shouldThrowWhenOrderNotFound() {
+            when(orderRepository.findById(999)).thenReturn(Optional.empty());
+            assertThrows(ValidationException.class, () -> orderService.deliverOrder(999));
         }
     }
 
@@ -306,6 +419,13 @@ class OrderServiceImplTest {
             assertThrows(ValidationException.class,
                     () -> orderService.cancelOrder(1, "Customer request"));
         }
+
+        @Test
+        @DisplayName("Should throw exception when order not found")
+        void shouldThrowWhenOrderNotFound() {
+            when(orderRepository.findById(999)).thenReturn(Optional.empty());
+            assertThrows(ValidationException.class, () -> orderService.cancelOrder(999, "reason"));
+        }
     }
 
     @Nested
@@ -338,6 +458,13 @@ class OrderServiceImplTest {
             // Act & Assert
             assertThrows(ValidationException.class,
                     () -> orderService.updateShippingAddress(1, "New Address", "0771234567"));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when order not found")
+        void shouldThrowWhenOrderNotFound() {
+            when(orderRepository.findById(999)).thenReturn(Optional.empty());
+            assertThrows(ValidationException.class, () -> orderService.updateShippingAddress(999, "Address", "Phone"));
         }
     }
 

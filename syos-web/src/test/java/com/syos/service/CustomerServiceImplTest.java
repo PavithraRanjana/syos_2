@@ -6,6 +6,7 @@ import com.syos.exception.CustomerNotFoundException;
 import com.syos.exception.DuplicateEmailException;
 import com.syos.exception.ValidationException;
 import com.syos.repository.interfaces.CustomerRepository;
+import com.syos.repository.impl.CustomerRepositoryImpl;
 import com.syos.service.impl.CustomerServiceImpl;
 import com.syos.service.interfaces.CustomerService.AuthenticationResult;
 import com.syos.service.interfaces.CustomerService.CustomerStatistics;
@@ -314,6 +315,39 @@ class CustomerServiceImplTest {
     }
 
     @Nested
+    @DisplayName("findByEmail tests")
+    class FindByEmailTests {
+
+        @Test
+        @DisplayName("Should find customer by email")
+        void shouldFindCustomerByEmail() {
+            // Arrange
+            Customer customer = createTestCustomer("John Doe", "test@example.com");
+            when(customerRepository.findByEmail("test@example.com")).thenReturn(Optional.of(customer));
+
+            // Act
+            Optional<Customer> result = customerService.findByEmail("test@example.com");
+
+            // Assert
+            assertTrue(result.isPresent());
+            assertEquals("test@example.com", result.get().getEmail());
+        }
+
+        @Test
+        @DisplayName("Should return empty when email not found")
+        void shouldReturnEmptyWhenNotFound() {
+            // Arrange
+            when(customerRepository.findByEmail("non@example.com")).thenReturn(Optional.empty());
+
+            // Act
+            Optional<Customer> result = customerService.findByEmail("non@example.com");
+
+            // Assert
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("updateProfile tests")
     class UpdateProfileTests {
 
@@ -405,6 +439,17 @@ class CustomerServiceImplTest {
             // Act & Assert
             assertThrows(ValidationException.class,
                     () -> customerService.changePassword(1, "password123", "12345"));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when customer not found")
+        void shouldThrowWhenCustomerNotFound() {
+            // Arrange
+            when(customerRepository.findById(999)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(CustomerNotFoundException.class,
+                    () -> customerService.changePassword(999, "any", "any"));
         }
     }
 
@@ -751,6 +796,44 @@ class CustomerServiceImplTest {
 
             assertEquals(1, customers.size());
             assertEquals("User", customers.get(0).getCustomerName());
+        }
+
+        @Test
+        @DisplayName("Should return empty list for null role")
+        void shouldReturnEmptyListForNullRole() {
+            // Act
+            List<Customer> result = customerService.findByRole(null);
+
+            // Assert
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("Should fail update user role for null role")
+        void shouldFailUpdateUserRoleForNullRole() {
+            when(customerRepository.existsById(1)).thenReturn(true);
+            assertThrows(ValidationException.class,
+                    () -> customerService.updateUserRole(1, null));
+        }
+
+        @Test
+        @DisplayName("Should update user role using RepositoryImpl optimization")
+        void shouldUpdateUserRoleUsingRepositoryImpl() {
+            // Arrange
+            CustomerRepositoryImpl mockRepoImpl = mock(CustomerRepositoryImpl.class);
+            CustomerServiceImpl serviceWithImpl = new CustomerServiceImpl(mockRepoImpl);
+
+            when(mockRepoImpl.existsById(1)).thenReturn(true);
+            when(mockRepoImpl.updateRole(1, UserRole.ADMIN)).thenReturn(true);
+
+            // Act
+            boolean result = serviceWithImpl.updateUserRole(1, UserRole.ADMIN);
+
+            // Assert
+            assertTrue(result);
+            verify(mockRepoImpl).updateRole(1, UserRole.ADMIN);
+            // Verify fallback not used
+            verify(mockRepoImpl, never()).save(any(Customer.class));
         }
     }
 }
