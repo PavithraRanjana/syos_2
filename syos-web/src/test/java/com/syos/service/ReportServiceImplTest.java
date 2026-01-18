@@ -2,9 +2,14 @@ package com.syos.service;
 
 import com.syos.domain.enums.StoreType;
 import com.syos.domain.models.Bill;
+import com.syos.domain.models.BillItem;
 import com.syos.domain.models.MainInventory;
 import com.syos.domain.models.PhysicalStoreInventory;
 import com.syos.domain.models.OnlineStoreInventory;
+import com.syos.domain.models.Product;
+import com.syos.service.interfaces.ReportService.SalesSummary;
+import com.syos.service.interfaces.ReportService.BillReport;
+import com.syos.service.interfaces.ReportService.RestockRecommendation;
 import com.syos.domain.valueobjects.BillSerialNumber;
 import com.syos.domain.valueobjects.Money;
 import com.syos.domain.valueobjects.ProductCode;
@@ -159,6 +164,40 @@ class ReportServiceImplTest {
 
             // Assert
             assertNotNull(result);
+        }
+    }
+
+    @Nested
+    @DisplayName("getSalesSummaryByStoreType tests")
+    class GetSalesSummaryByStoreTypeTests {
+
+        @Test
+        @DisplayName("Should return sales summary for physical store")
+        void shouldReturnSalesSummaryForPhysicalStore() {
+            // Arrange
+            LocalDate date = LocalDate.now();
+            StoreType storeType = StoreType.PHYSICAL;
+
+            BillRepository.StoreTypeSalesSummary salesSummary = new BillRepository.StoreTypeSalesSummary(storeType, 10,
+                    new BigDecimal("1000.00"));
+
+            when(billRepository.getSalesByStoreType(date, date)).thenReturn(List.of(salesSummary));
+
+            BillItemRepository.ProductSalesSummary productSummary = new BillItemRepository.ProductSalesSummary("P1",
+                    "Product 1", 5, new BigDecimal("500.00"));
+
+            when(billItemRepository.getProductSalesSummaryByStoreType(date, date, storeType))
+                    .thenReturn(List.of(productSummary));
+
+            // Act
+            SalesSummary result = reportService.getSalesSummaryByStoreType(date, storeType);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(10, result.totalBills());
+            assertEquals(new BigDecimal("1000.00"), result.totalSales());
+            assertEquals(5, result.totalItemsSold());
+            assertEquals(new BigDecimal("100.00"), result.averageBillValue());
         }
     }
 
@@ -397,14 +436,24 @@ class ReportServiceImplTest {
         @DisplayName("Should return reorder level report")
         void shouldReturnReorderLevelReport() {
             // Arrange
+            // 1. Mock active products
+            Product product = new Product();
+            product.setProductCode(new ProductCode("TEST-001"));
+            product.setProductName("Test Product");
+            when(productRepository.findAllActive()).thenReturn(List.of(product));
+
+            // 2. Mock inventory batches for the product
             MainInventory batch = createMainInventory("TEST-001", 5, LocalDate.now().plusMonths(6));
-            when(mainInventoryRepository.findAll()).thenReturn(List.of(batch));
+            when(mainInventoryRepository.findByProductCode("TEST-001")).thenReturn(List.of(batch));
 
             // Act
+            // Threshold 10, remaining 5. Should reorder 5.
             List<ReorderLevelReport> result = reportService.getReorderLevelReport(10);
 
             // Assert
             assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals(5, result.get(0).quantityToReorder());
         }
     }
 
@@ -478,30 +527,46 @@ class ReportServiceImplTest {
         @DisplayName("Should return reshelve report for physical store")
         void shouldReturnReshelveReportForPhysicalStore() {
             // Arrange
-            PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 5);
-            when(physicalStoreRepository.findLowStock(anyInt())).thenReturn(List.of(inv));
-            when(mainInventoryRepository.findAvailableBatchesByProductCode("TEST-001")).thenReturn(List.of());
+            PhysicalStoreInventoryRepository.ProductStockSummary summary = new PhysicalStoreInventoryRepository.ProductStockSummary(
+                    "TEST-001", "Test Product", 5, 1);
+
+            when(physicalStoreRepository.getStockSummary()).thenReturn(List.of(summary));
+
+            Product product = new Product();
+            product.setProductCode(new ProductCode("TEST-001"));
+            product.setMinPhysicalStock(10);
+            when(productRepository.findByProductCode("TEST-001")).thenReturn(java.util.Optional.of(product));
 
             // Act
             List<ReshelveReport> result = reportService.getReshelveReport(StoreType.PHYSICAL);
 
             // Assert
             assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals(5, result.get(0).quantityToReshelve());
         }
 
         @Test
         @DisplayName("Should return reshelve report for online store")
         void shouldReturnReshelveReportForOnlineStore() {
             // Arrange
-            OnlineStoreInventory inv = createOnlineInventory("TEST-001", 3);
-            when(onlineStoreRepository.findLowStock(anyInt())).thenReturn(List.of(inv));
-            when(mainInventoryRepository.findAvailableBatchesByProductCode("TEST-001")).thenReturn(List.of());
+            OnlineStoreInventoryRepository.ProductStockSummary summary = new OnlineStoreInventoryRepository.ProductStockSummary(
+                    "TEST-001", "Test Product", 3, 1);
+
+            when(onlineStoreRepository.getStockSummary()).thenReturn(List.of(summary));
+
+            Product product = new Product();
+            product.setProductCode(new ProductCode("TEST-001"));
+            product.setMinOnlineStock(10);
+            when(productRepository.findByProductCode("TEST-001")).thenReturn(java.util.Optional.of(product));
 
             // Act
             List<ReshelveReport> result = reportService.getReshelveReport(StoreType.ONLINE);
 
             // Assert
             assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals(7, result.get(0).quantityToReshelve());
         }
     }
 
@@ -513,32 +578,77 @@ class ReportServiceImplTest {
         @DisplayName("Should return restock recommendations for physical store")
         void shouldReturnRestockRecommendationsForPhysicalStore() {
             // Arrange
-            PhysicalStoreInventory inv = createPhysicalInventory("TEST-001", 5);
-            when(physicalStoreRepository.findLowStock(anyInt())).thenReturn(List.of(inv));
-            when(billItemRepository.getProductSalesSummary(any(), any())).thenReturn(List.of());
+            // 1. Mock stock levels
+            PhysicalStoreInventoryRepository.ProductStockSummary stockSummary = new PhysicalStoreInventoryRepository.ProductStockSummary(
+                    "TEST-001", "Test Product", 10, 1);
+            when(physicalStoreRepository.getStockSummary()).thenReturn(List.of(stockSummary));
+            when(physicalStoreRepository.findAvailableByProductCode("TEST-001")).thenReturn(List.of());
+
+            // 2. Mock sales data (high sales to trigger restock)
+            BillItemRepository.ProductSalesSummary salesSummary = new BillItemRepository.ProductSalesSummary("TEST-001",
+                    "Test Product", 60, BigDecimal.TEN);
+            when(billItemRepository.getProductSalesSummary(any(), any())).thenReturn(List.of(salesSummary));
 
             // Act
-            List<RestockRecommendation> result = reportService.getRestockRecommendations(
-                    StoreType.PHYSICAL, 30);
+            List<RestockRecommendation> result = reportService.getRestockRecommendations(StoreType.PHYSICAL, 30);
 
             // Assert
             assertNotNull(result);
+            assertFalse(result.isEmpty());
+            assertEquals("TEST-001", result.get(0).productCode());
+            assertTrue(result.get(0).recommendedRestock() > 0);
         }
 
         @Test
         @DisplayName("Should return restock recommendations for online store")
         void shouldReturnRestockRecommendationsForOnlineStore() {
             // Arrange
-            OnlineStoreInventory inv = createOnlineInventory("TEST-001", 3);
-            when(onlineStoreRepository.findLowStock(anyInt())).thenReturn(List.of(inv));
-            when(billItemRepository.getProductSalesSummary(any(), any())).thenReturn(List.of());
+            OnlineStoreInventoryRepository.ProductStockSummary stockSummary = new OnlineStoreInventoryRepository.ProductStockSummary(
+                    "TEST-001", "Test Product", 10, 1);
+            when(onlineStoreRepository.getStockSummary()).thenReturn(List.of(stockSummary));
+            when(onlineStoreRepository.findAvailableByProductCode("TEST-001")).thenReturn(List.of());
+
+            BillItemRepository.ProductSalesSummary salesSummary = new BillItemRepository.ProductSalesSummary("TEST-001",
+                    "Test Product", 60, BigDecimal.TEN);
+            when(billItemRepository.getProductSalesSummary(any(), any())).thenReturn(List.of(salesSummary));
 
             // Act
-            List<RestockRecommendation> result = reportService.getRestockRecommendations(
-                    StoreType.ONLINE, 30);
+            List<RestockRecommendation> result = reportService.getRestockRecommendations(StoreType.ONLINE, 30);
 
             // Assert
             assertNotNull(result);
+            assertFalse(result.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("getBillReport tests")
+    class GetBillReportTests {
+
+        @Test
+        @DisplayName("Should return bill report with items")
+        void shouldReturnBillReportWithItems() {
+            // Arrange
+            LocalDate date = LocalDate.now();
+            StoreType storeType = StoreType.PHYSICAL;
+            Bill bill = createTestBill(1, storeType, date);
+
+            when(billRepository.findByStoreTypeAndDateRange(storeType, date, date)).thenReturn(List.of(bill));
+
+            BillItem item = new BillItem();
+            item.setBillId(1);
+            item.setProductCode(new ProductCode("P1"));
+            when(billItemRepository.findByBillId(1)).thenReturn(List.of(item));
+
+            // Act
+            BillReport result = reportService.getBillReport(date, storeType);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(1, result.bills().size());
+            assertEquals(1, result.bills().get(0).getItems().size());
+            // Total revenue should equal the bill's total amount
+            assertEquals(bill.getTotalAmount().getAmount(), result.totalRevenue());
         }
     }
 }
