@@ -12,7 +12,11 @@
       "Bash(SESSION=\"17C6431E6D86CCC307A42062E0E3C44E\":*)",
       "Bash(python3:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(brew list:*)",
+      "Bash(RESULTS_DIR=\"results\")",
+      "Bash(jmeter:*)",
+      "Bash(gawk:*)"
     ]
   }
 }

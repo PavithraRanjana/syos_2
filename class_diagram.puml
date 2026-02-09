@@ -1,0 +1,575 @@
+@startuml SYOS_Class_Diagram
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 11
+
+title SYOS - Class Diagram
+
+' ============================================================
+' DOMAIN LAYER
+' ============================================================
+
+package "domain.enums" #f9f9e0 {
+    enum StoreType {
+        PHYSICAL
+        ONLINE
+    }
+    enum TransactionType {
+        CASH
+        ONLINE
+    }
+    enum OrderStatus {
+        PENDING
+        CONFIRMED
+        PROCESSING
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+    enum UserRole {
+        CUSTOMER
+        CASHIER
+        INVENTORY_MANAGER
+        MANAGER
+        ADMIN
+    }
+    enum InventoryTransactionType {
+        SALE
+        RESTOCK_PHYSICAL
+        RESTOCK_ONLINE
+        ADJUSTMENT
+        RETURN
+        EXPIRED
+    }
+    enum UnitOfMeasure {
+        KILOGRAM
+        GRAM
+        LITER
+        UNIT
+        PACK
+        PCS
+    }
+    enum CommandType {
+        ADD_BATCH
+        REMOVE_BATCH
+        ISSUE_STOCK
+        ADD_PRODUCT
+        UPDATE_STOCK
+    }
+}
+
+package "domain.valueobjects" #e8f4e8 {
+    class Money {
+        - amount : BigDecimal
+    }
+    class ProductCode {
+        - code : String
+    }
+    class BillSerialNumber {
+        - serialNumber : String
+    }
+}
+
+package "domain.models" #e0ecf8 {
+    class Bill {
+        - billId : Integer
+        - serialNumber : BillSerialNumber
+        - customerId : Integer
+        - storeType : StoreType
+        - transactionType : TransactionType
+        - totalAmount : Money
+        - items : List<BillItem>
+    }
+    class BillItem {
+        - billItemId : Integer
+        - productCode : ProductCode
+        - quantity : int
+        - unitPrice : Money
+        - totalPrice : Money
+    }
+
+    class Product {
+        - productCode : ProductCode
+        - productName : String
+        - categoryId : Integer
+        - subcategoryId : Integer
+        - brandId : Integer
+        - unitPrice : Money
+        - unitOfMeasure : UnitOfMeasure
+    }
+    class Category {
+        - categoryId : Integer
+        - categoryName : String
+    }
+    class Subcategory {
+        - subcategoryId : Integer
+        - categoryId : Integer
+        - subcategoryName : String
+    }
+    class Brand {
+        - brandId : Integer
+        - brandName : String
+    }
+
+    class Customer {
+        - customerId : Integer
+        - email : String
+        - passwordHash : String
+        - role : UserRole
+    }
+
+    class Cart {
+        - customerId : Integer
+        - items : Map<String, CartItem>
+    }
+    class CartItem {
+        - productCode : ProductCode
+        - unitPrice : Money
+        - quantity : int
+    }
+
+    class Order {
+        - orderId : Integer
+        - orderNumber : String
+        - customerId : Integer
+        - status : OrderStatus
+        - paymentMethod : TransactionType
+        - totalAmount : Money
+        - items : List<OrderItem>
+    }
+    class OrderItem {
+        - productCode : ProductCode
+        - quantity : int
+        - unitPrice : Money
+    }
+
+    class MainInventory {
+        - mainInventoryId : Integer
+        - productCode : ProductCode
+        - remainingQuantity : int
+        - purchasePrice : Money
+        - expiryDate : LocalDate
+    }
+    class PhysicalStoreInventory {
+        - productCode : ProductCode
+        - mainInventoryId : Integer
+        - quantityOnShelf : int
+    }
+    class OnlineStoreInventory {
+        - productCode : ProductCode
+        - mainInventoryId : Integer
+        - quantityAvailable : int
+    }
+    class InventoryTransaction {
+        - productCode : ProductCode
+        - transactionType : InventoryTransactionType
+        - storeType : StoreType
+        - quantityChanged : int
+    }
+}
+
+' ── Domain Relationships ──
+Bill "1" *-- "*" BillItem
+Bill --> BillSerialNumber
+Bill --> StoreType
+Bill --> TransactionType
+
+Cart "1" *-- "*" CartItem
+
+Order "1" *-- "*" OrderItem
+Order --> OrderStatus
+Order --> TransactionType
+
+Product --> ProductCode
+Product --> Money
+Product --> UnitOfMeasure
+Product --> Category
+Product --> Subcategory
+Product --> Brand
+Subcategory --> Category
+
+Customer --> UserRole
+
+MainInventory --> ProductCode
+PhysicalStoreInventory --> MainInventory : batch
+OnlineStoreInventory --> MainInventory : batch
+InventoryTransaction --> InventoryTransactionType
+InventoryTransaction --> StoreType
+
+' ============================================================
+' REPOSITORY LAYER
+' ============================================================
+
+package "repository.interfaces" #f0e8f0 {
+    interface "Repository<T, ID>" as Repository {
+        + save(T) : T
+        + findById(ID) : Optional<T>
+        + findAll() : List<T>
+        + deleteById(ID) : boolean
+        + count() : long
+    }
+
+    interface BillRepository
+    interface BillItemRepository
+    interface ProductRepository
+    interface CategoryRepository
+    interface SubcategoryRepository
+    interface BrandRepository
+    interface CustomerRepository
+    interface OrderRepository
+    interface MainInventoryRepository
+    interface PhysicalStoreInventoryRepository
+    interface OnlineStoreInventoryRepository
+    interface InventoryTransactionRepository
+}
+
+BillRepository --|> Repository
+BillItemRepository --|> Repository
+ProductRepository --|> Repository
+CategoryRepository --|> Repository
+SubcategoryRepository --|> Repository
+BrandRepository --|> Repository
+CustomerRepository --|> Repository
+OrderRepository --|> Repository
+MainInventoryRepository --|> Repository
+PhysicalStoreInventoryRepository --|> Repository
+OnlineStoreInventoryRepository --|> Repository
+InventoryTransactionRepository --|> Repository
+
+package "repository.impl" #f5ecf5 {
+    abstract class BaseRepository {
+        # dataSource : DataSource
+        # executeQuery()
+        # executeUpdate()
+    }
+
+    class BillRepositoryImpl
+    class BillItemRepositoryImpl
+    class ProductRepositoryImpl
+    class CategoryRepositoryImpl
+    class SubcategoryRepositoryImpl
+    class BrandRepositoryImpl
+    class CustomerRepositoryImpl
+    class OrderRepositoryImpl
+    class MainInventoryRepositoryImpl
+    class PhysicalStoreInventoryRepositoryImpl
+    class OnlineStoreInventoryRepositoryImpl
+    class InventoryTransactionRepositoryImpl
+}
+
+BillRepositoryImpl --|> BaseRepository
+BillRepositoryImpl ..|> BillRepository
+BillItemRepositoryImpl --|> BaseRepository
+BillItemRepositoryImpl ..|> BillItemRepository
+ProductRepositoryImpl --|> BaseRepository
+ProductRepositoryImpl ..|> ProductRepository
+CategoryRepositoryImpl --|> BaseRepository
+CategoryRepositoryImpl ..|> CategoryRepository
+SubcategoryRepositoryImpl --|> BaseRepository
+SubcategoryRepositoryImpl ..|> SubcategoryRepository
+BrandRepositoryImpl --|> BaseRepository
+BrandRepositoryImpl ..|> BrandRepository
+CustomerRepositoryImpl --|> BaseRepository
+CustomerRepositoryImpl ..|> CustomerRepository
+OrderRepositoryImpl ..|> OrderRepository
+MainInventoryRepositoryImpl --|> BaseRepository
+MainInventoryRepositoryImpl ..|> MainInventoryRepository
+PhysicalStoreInventoryRepositoryImpl --|> BaseRepository
+PhysicalStoreInventoryRepositoryImpl ..|> PhysicalStoreInventoryRepository
+OnlineStoreInventoryRepositoryImpl --|> BaseRepository
+OnlineStoreInventoryRepositoryImpl ..|> OnlineStoreInventoryRepository
+InventoryTransactionRepositoryImpl --|> BaseRepository
+InventoryTransactionRepositoryImpl ..|> InventoryTransactionRepository
+
+' ============================================================
+' SERVICE LAYER
+' ============================================================
+
+package "service.interfaces" #fff0e0 {
+    interface BillingService
+    interface CartService
+    interface CustomerService
+    interface ProductService
+    interface InventoryService
+    interface StoreInventoryService
+    interface OrderService
+    interface ReportService
+    interface BackgroundTaskService
+}
+
+package "service.impl" #fff5ea {
+    class BillingServiceImpl
+    class CartServiceImpl
+    class CustomerServiceImpl
+    class ProductServiceImpl
+    class InventoryServiceImpl
+    class StoreInventoryServiceImpl
+    class OrderServiceImpl
+    class ReportServiceImpl
+    class BackgroundTaskServiceImpl
+}
+
+BillingServiceImpl ..|> BillingService
+CartServiceImpl ..|> CartService
+CustomerServiceImpl ..|> CustomerService
+ProductServiceImpl ..|> ProductService
+InventoryServiceImpl ..|> InventoryService
+StoreInventoryServiceImpl ..|> StoreInventoryService
+OrderServiceImpl ..|> OrderService
+ReportServiceImpl ..|> ReportService
+BackgroundTaskServiceImpl ..|> BackgroundTaskService
+
+' ── Service Dependencies ──
+BillingServiceImpl --> BillRepository
+BillingServiceImpl --> BillItemRepository
+BillingServiceImpl --> ProductRepository
+BillingServiceImpl --> StoreInventoryService
+BillingServiceImpl --> InventoryTransactionRepository
+
+CartServiceImpl --> ProductService
+CartServiceImpl --> StoreInventoryService
+
+CustomerServiceImpl --> CustomerRepository
+
+ProductServiceImpl --> ProductRepository
+
+InventoryServiceImpl --> MainInventoryRepository
+InventoryServiceImpl --> ProductRepository
+
+StoreInventoryServiceImpl --> PhysicalStoreInventoryRepository
+StoreInventoryServiceImpl --> OnlineStoreInventoryRepository
+StoreInventoryServiceImpl --> MainInventoryRepository
+StoreInventoryServiceImpl --> InventoryTransactionRepository
+StoreInventoryServiceImpl --> ProductRepository
+
+OrderServiceImpl --> OrderRepository
+OrderServiceImpl --> CartService
+OrderServiceImpl --> CustomerService
+OrderServiceImpl --> InventoryService
+OrderServiceImpl --> BillingService
+
+ReportServiceImpl --> BillRepository
+ReportServiceImpl --> BillItemRepository
+ReportServiceImpl --> MainInventoryRepository
+ReportServiceImpl --> PhysicalStoreInventoryRepository
+ReportServiceImpl --> OnlineStoreInventoryRepository
+ReportServiceImpl --> ProductRepository
+
+BackgroundTaskServiceImpl --> InventoryService
+BackgroundTaskServiceImpl --> StoreInventoryService
+BackgroundTaskServiceImpl --> ReportService
+
+' ============================================================
+' WEB LAYER - SERVLETS
+' ============================================================
+
+package "web.servlet" #e0f0f0 {
+    abstract class BaseServlet {
+        # sendJson()
+        # sendError()
+        # handleException()
+    }
+    abstract class BaseApiServlet
+    abstract class BaseViewServlet {
+        # render()
+    }
+
+    BaseApiServlet --|> BaseServlet
+}
+
+package "web.servlet.api" #d8ecec {
+    class AdminApiServlet
+    class AuthApiServlet
+    class BillingApiServlet
+    class CartApiServlet
+    class CategoryApiServlet
+    class CustomerApiServlet
+    class InventoryApiServlet
+    class OrderApiServlet
+    class ProductApiServlet
+    class ReportApiServlet
+    class StoreInventoryApiServlet
+}
+
+AdminApiServlet --|> BaseApiServlet
+AuthApiServlet --|> BaseApiServlet
+BillingApiServlet --|> BaseApiServlet
+CartApiServlet --|> BaseApiServlet
+CategoryApiServlet --|> BaseApiServlet
+CustomerApiServlet --|> BaseApiServlet
+InventoryApiServlet --|> BaseApiServlet
+OrderApiServlet --|> BaseApiServlet
+ProductApiServlet --|> BaseApiServlet
+ReportApiServlet --|> BaseApiServlet
+StoreInventoryApiServlet --|> BaseApiServlet
+
+package "web.servlet.view" #d8ecec {
+    class AdminViewServlet
+    class AuthViewServlet
+    class CustomerViewServlet
+    class DashboardServlet
+    class InventoryViewServlet
+    class POSServlet
+    class ProductViewServlet
+    class ReportViewServlet
+    class ShopViewServlet
+    class StoreStockViewServlet
+}
+
+AdminViewServlet --|> BaseViewServlet
+CustomerViewServlet --|> BaseViewServlet
+DashboardServlet --|> BaseViewServlet
+InventoryViewServlet --|> BaseViewServlet
+POSServlet --|> BaseViewServlet
+ProductViewServlet --|> BaseViewServlet
+ReportViewServlet --|> BaseViewServlet
+StoreStockViewServlet --|> BaseViewServlet
+
+' ── Servlet → Service Dependencies ──
+AdminApiServlet --> CustomerService
+AuthApiServlet --> CustomerService
+BillingApiServlet --> BillingService
+CartApiServlet --> CartService
+CategoryApiServlet --> CategoryRepository
+CategoryApiServlet --> SubcategoryRepository
+CustomerApiServlet --> CustomerService
+InventoryApiServlet --> InventoryService
+OrderApiServlet --> OrderService
+ProductApiServlet --> ProductService
+ReportApiServlet --> ReportService
+StoreInventoryApiServlet --> StoreInventoryService
+
+AdminViewServlet --> CustomerService
+CustomerViewServlet --> CustomerService
+DashboardServlet --> ReportService
+InventoryViewServlet --> InventoryService
+InventoryViewServlet --> ReportService
+POSServlet --> BillingService
+POSServlet --> ProductService
+POSServlet --> StoreInventoryService
+ProductViewServlet --> ProductService
+ReportViewServlet --> ReportService
+StoreStockViewServlet --> StoreInventoryService
+
+' ============================================================
+' WEB LAYER - FILTERS, LISTENERS, DTOs, UTILS
+' ============================================================
+
+package "web.filter" #f0f0f0 {
+    class SecurityFilter
+    class EncodingFilter
+    class RequestLoggingFilter
+}
+
+SecurityFilter --> UserRole
+
+package "web.listener" #f0f0f0 {
+    class ApplicationContextListener
+    class SessionListener
+}
+
+package "web.dto.request" #f0f0f0 {
+    class BillingRequest
+    class CustomerRegistrationRequest
+    class LoginRequest
+}
+
+package "web.dto.response" #f0f0f0 {
+    class "ApiResponse<T>" as ApiResponse
+    class BillResponse
+    class ProductResponse
+}
+
+BillResponse --> Bill : maps from
+ProductResponse --> Product : maps from
+BaseServlet --> ApiResponse
+
+package "web.util" #f0f0f0 {
+    class SessionUtil
+}
+SessionUtil --> UserRole
+
+' ============================================================
+' CONFIG LAYER
+' ============================================================
+
+package "config" #f0f0e8 {
+    class ServiceRegistry {
+        + {static} register(Class, Object)
+        + {static} get(Class) : T
+    }
+    class DataSourceConfig {
+        + {static} getDataSource() : DataSource
+    }
+    class ThreadPoolConfig {
+        + {static} getApiThreadPool()
+        + {static} getBackgroundTaskExecutor()
+    }
+    class AppConfig {
+        + {static} get(String) : String
+        + {static} getInt(String, int) : int
+    }
+}
+
+ApplicationContextListener --> ServiceRegistry : registers all services
+ApplicationContextListener --> DataSourceConfig : initializes
+ApplicationContextListener --> ThreadPoolConfig : initializes
+BaseRepository --> DataSourceConfig : getDataSource()
+
+' ============================================================
+' UTIL LAYER
+' ============================================================
+
+package "util" #f0f0f0 {
+    class JsonUtil
+    class PasswordUtil
+    class ValidationUtil
+    class DateUtil
+}
+
+BaseServlet --> JsonUtil
+CustomerServiceImpl --> PasswordUtil
+
+' ============================================================
+' EXCEPTION HIERARCHY
+' ============================================================
+
+package "exception" #fce4e4 {
+    class SyosException
+    class BillingException
+    class CustomerException
+    class InventoryException
+    class BusinessRuleException
+    class RepositoryException
+    class ValidationException
+    class BillNotFoundException
+    class InvalidPaymentException
+    class CustomerNotFoundException
+    class DuplicateEmailException
+    class InvalidLoginException
+    class BatchNotFoundException
+    class InsufficientStockException
+    class ProductNotFoundException
+}
+
+SyosException --|> RuntimeException
+BillingException --|> SyosException
+CustomerException --|> SyosException
+InventoryException --|> SyosException
+BusinessRuleException --|> SyosException
+RepositoryException --|> SyosException
+ValidationException --|> SyosException
+
+BillNotFoundException --|> BillingException
+InvalidPaymentException --|> BillingException
+CustomerNotFoundException --|> CustomerException
+DuplicateEmailException --|> CustomerException
+InvalidLoginException --|> CustomerException
+BatchNotFoundException --|> InventoryException
+InsufficientStockException --|> InventoryException
+ProductNotFoundException --|> InventoryException
+
+@enduml
